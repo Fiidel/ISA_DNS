@@ -2,37 +2,53 @@
 #include <unistd.h>
 #include "CLParser.h"
 
-int CLParser::ParseClArgs(int argc, char** argv)
+int CLParser::ParseClArgs(int argc, char** argv, Configuration *configuration)
 {
     int opt;
 
+    // no arguments
+    if (argc == 1)
+    {
+        std::cout << "Invalid usage. Type ./dns-monitor -h for usage." << std::endl;
+        return 1;
+    }
+
+    // parsing arguments
     while ((opt = getopt(argc, argv, "i:r:vd:t:h")) != -1)
     {
         switch (opt)
         {
             case 'i':
-                std::cout << "Detected i " << optarg << std::endl;
+                configuration->interface = optarg;
                 break;
             case 'r':
-                std::cout << "Detected r " << optarg << std::endl;
+                configuration->pcapFile = optarg;
                 break;
             case 'v':
-                std::cout << "Detected v" << std::endl;
+                configuration->verbose = true;
                 break;
             case 'd':
-                std::cout << "Detected d " << optarg << std::endl;
+                configuration->domainsFile = optarg;
                 break;
             case 't':
-                std::cout << "Detected t " << optarg << std::endl;
+                configuration->translationsFile = optarg;
                 break;
             case 'h':
                 std::cout << "This is help." << std::endl;
-                break;
+                return 0;
             default:
-                std::cout << "Wrong switch. Type ./dns-monitor -h for usage." << std::endl;
-                break;
+                std::cout << "Invalid option(s). Type ./dns-monitor -h for usage." << std::endl;
+                return 1;
         }
     }
+
+    // check either interface or pcap file is specified (not both)
+    if (configuration->interface != "" && configuration->pcapFile != "")
+    {
+        std::cerr << "Please specify either an interface or a pcap file, not both." << std::endl;
+        return 1;
+    }
+
     // finished without errors
     return 0;
 }
