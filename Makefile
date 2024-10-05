@@ -13,3 +13,6 @@ main.o:
 
 CLParser.o:
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/CLParser.cpp
+
+clean:
+	rm -f $(EXECUTABLE) *.o
