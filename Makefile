@@ -6,7 +6,7 @@ EXECUTABLE = dns-monitor
 all: $(EXECUTABLE)
 
 $(EXECUTABLE): main.o CLParser.o Configuration.o
-	$(CXX) $(CXXFLAGS) -o $(EXECUTABLE) main.o CLParser.o Configuration.o
+	$(CXX) $(CXXFLAGS) -o $(EXECUTABLE) main.o CLParser.o Configuration.o -lpcap
 
 main.o:
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/main.cpp
