@@ -1,7 +1,7 @@
 #include "Configuration.h"
 
 bool Configuration::verbose = false;
-std::string Configuration::interface = "";
-std::string Configuration::pcapFile = "";
-std::string Configuration::domainsFile = "";
-std::string Configuration::translationsFile = "";
+char* Configuration::interface = "";
+char* Configuration::pcapFile = "";
+char* Configuration::domainsFile = "";
+char* Configuration::translationsFile = "";

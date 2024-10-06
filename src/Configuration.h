@@ -7,10 +7,10 @@ class Configuration
 {
 public:
     static bool verbose;
-    static std::string interface;
-    static std::string pcapFile;
-    static std::string domainsFile;
-    static std::string translationsFile;
+    static char* interface;
+    static char* pcapFile;
+    static char* domainsFile;
+    static char* translationsFile;
 };
 
 #endif
