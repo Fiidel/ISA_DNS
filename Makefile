@@ -5,8 +5,8 @@ EXECUTABLE = dns-monitor
 
 all: $(EXECUTABLE)
 
-$(EXECUTABLE): main.o CLParser.o Configuration.o
-	$(CXX) $(CXXFLAGS) -o $(EXECUTABLE) main.o CLParser.o Configuration.o -lpcap
+$(EXECUTABLE): main.o CLParser.o Configuration.o PacketCapture.o
+	$(CXX) $(CXXFLAGS) -o $(EXECUTABLE) main.o CLParser.o Configuration.o PacketCapture.o -lpcap
 
 main.o:
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/main.cpp
@@ -16,6 +16,9 @@ CLParser.o:
 
 Configuration.o:
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/Configuration.cpp
+
+PacketCapture.o:
+	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/PacketCapture.cpp
 
 clean:
 	rm -f $(EXECUTABLE) *.o
