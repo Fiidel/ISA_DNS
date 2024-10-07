@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string.h>
+#include <signal.h>
 #include <pcap.h>
 #include "CLParser.h"
 #include "Configuration.h"
@@ -10,6 +11,13 @@ void Cleanup(Configuration* configuration)
     {
         delete configuration;
     }
+}
+
+void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_char *bytes)
+{
+    // TODO: packet work
+    std::cout << "Packet in packet handler." << std::endl;
+    return;
 }
 
 int main(int argc, char** argv)
@@ -42,7 +50,6 @@ int main(int argc, char** argv)
     {
         if (strcmp(device->name, configuration->interface) == 0)
         {
-            std::cout << "Using interface: " << device->name << std::endl;
             desiredDevice = device;
             break;
         }
@@ -57,7 +64,20 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    
+    // Open packet capture.
+    pcap_t *handle = pcap_open_live(desiredDevice->name, BUFSIZ, 1, 0, errbuf);
+    if (handle == NULL)
+    {
+        std::cerr << "Error opening packet capture." << std::endl;
+        std::cerr << errbuf << std::endl;
+        Cleanup(configuration);
+        pcap_freealldevs(devices);
+        return 1;
+    }
+
+    // Loop over packets.
+    pcap_loop(handle, -1, packet_handler, NULL);
+
     Cleanup(configuration);
     return 0;
 }
