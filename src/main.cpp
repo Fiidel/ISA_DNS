@@ -13,6 +13,13 @@ void Cleanup(Configuration* configuration)
     }
 }
 
+void InterruptHandler(int sig)
+{
+    std::cout << "Interrupt." << std::endl;
+    // TODO: clean up
+    exit(0);
+}
+
 void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_char *bytes)
 {
     // TODO: packet work
@@ -22,6 +29,8 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
 
 int main(int argc, char** argv)
 {
+    signal(SIGINT, InterruptHandler);
+
     CLParser clParser;
     Configuration* configuration = new Configuration();
     int clParserSuccess = clParser.ParseClArgs(argc, argv, configuration);
