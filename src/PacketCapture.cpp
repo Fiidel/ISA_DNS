@@ -64,7 +64,7 @@ int PacketCapture::OpenCaptureOnInterface(Configuration* configuration)
         }
 
         // Open packet capture.
-        handle = pcap_open_live(desiredDevice->name, BUFSIZ, 1, 0, errbuf);
+        handle = pcap_open_live(desiredDevice->name, BUFSIZ, 1, 1000, errbuf);
 
         if (handle == NULL)
         {
@@ -92,8 +92,31 @@ int PacketCapture::OpenCaptureOnInterface(Configuration* configuration)
         }
     }
 
+    // Set filter.
+    bpf_program filter;
+    int compileSuccess = pcap_compile(handle, &filter, "udp port 53", 0, PCAP_NETMASK_UNKNOWN);
+    if (compileSuccess != 0)
+    {
+        std::cerr << "Error compiling filter." << std::endl;
+        std::cerr << pcap_geterr(handle) << std::endl;
+        pcap_close(handle);
+        return 1;
+    }
+
+    int filterSuccess = pcap_setfilter(handle, &filter);
+    if (filterSuccess != 0)
+    {
+        std::cerr << "Error setting filter." << std::endl;
+        std::cerr << pcap_geterr(handle) << std::endl;
+        pcap_close(handle);
+        return 1;
+    }
+
     // Loop over packets.
     pcap_loop(handle, -1, packet_handler, NULL);
+
+    // Cleanup.
+    pcap_close(handle);
 
     return 0;
 }
