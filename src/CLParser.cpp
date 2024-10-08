@@ -49,6 +49,13 @@ int CLParser::ParseClArgs(int argc, char** argv, Configuration *configuration)
         return 1;
     }
 
+    // check either interface or pcap file is specified (at least one)
+    if (configuration->interface == NULL && configuration->pcapFile == NULL)
+    {
+        std::cerr << "Please specify either an interface or a pcap file." << std::endl;
+        return 1;
+    }
+
     // finished without errors
     return 0;
 }
