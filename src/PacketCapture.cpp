@@ -26,44 +26,70 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
 
 int PacketCapture::OpenCaptureOnInterface(Configuration* configuration)
 {
-    // Find the specified interface in known devices.
+    pcap_t* handle = NULL;
     char errbuf[PCAP_ERRBUF_SIZE];
-    pcap_if_t* desiredDevice = NULL;
-    pcap_if_t* devices = NULL;
-    pcap_findalldevs(&devices, errbuf);
 
-    if (devices == NULL)
-    {
-        std::cerr << "Error ocurred. No devices found." << std::endl;
-        std::cerr << errbuf << std::endl;
-        return 1;
-    }
+    // ======================================================
+    // IF INTERFACE CHOSEN
 
-    for (pcap_if_t* device = devices; device != NULL; device = device->next)
+    if (configuration->interface != NULL)
     {
-        if (strcmp(device->name, configuration->interface) == 0)
+        // Find the specified interface in known devices.
+        pcap_if_t* desiredDevice = NULL;
+        pcap_if_t* devices = NULL;
+        pcap_findalldevs(&devices, errbuf);
+
+        if (devices == NULL)
         {
-            desiredDevice = device;
-            break;
+            std::cerr << "Error ocurred. No devices found." << std::endl;
+            std::cerr << errbuf << std::endl;
+            return 1;
         }
+
+        for (pcap_if_t* device = devices; device != NULL; device = device->next)
+        {
+            if (strcmp(device->name, configuration->interface) == 0)
+            {
+                desiredDevice = device;
+                break;
+            }
+        }
+
+        if (desiredDevice == NULL)
+        {
+            std::cerr << "Specified interface not found." << std::endl;
+            std::cerr << errbuf << std::endl;
+            pcap_freealldevs(devices);
+            return 1;
+        }
+
+        // Open packet capture.
+        handle = pcap_open_live(desiredDevice->name, BUFSIZ, 1, 0, errbuf);
+
+        if (handle == NULL)
+        {
+            std::cerr << "Error opening live packet capture." << std::endl;
+            std::cerr << errbuf << std::endl;
+            pcap_freealldevs(devices);
+            return 1;
+        }
+
+        pcap_freealldevs(devices);
     }
 
-    if (desiredDevice == NULL)
-    {
-        std::cerr << "Specified interface not found." << std::endl;
-        std::cerr << errbuf << std::endl;
-        pcap_freealldevs(devices);
-        return 1;
-    }
+    // ======================================================
+    // IF PCAP FILE CHOSEN
 
-    // Open packet capture.
-    pcap_t *handle = pcap_open_live(desiredDevice->name, BUFSIZ, 1, 0, errbuf);
-    if (handle == NULL)
+    if (configuration->pcapFile != NULL)
     {
-        std::cerr << "Error opening packet capture." << std::endl;
-        std::cerr << errbuf << std::endl;
-        pcap_freealldevs(devices);
-        return 1;
+        handle = pcap_open_offline(configuration->pcapFile, errbuf);
+
+        if (handle == NULL)
+        {
+            std::cerr << "Error opening packet capture file." << std::endl;
+            std::cerr << errbuf << std::endl;
+            return 1;
+        }
     }
 
     // Loop over packets.
