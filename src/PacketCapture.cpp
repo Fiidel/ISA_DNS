@@ -97,7 +97,14 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
         inet_ntop(AF_INET6, ipv6Dst, dstAddressBuffer, 100);
     }
 
-    std::cout << datetimeOutput << " " << srcAddressBuffer << " -> " << dstAddressBuffer << std::endl;
+    // determine the type - query/response
+    char typeQR = ((dnsHeader->flags & 0b1000000000000000) >> 15) ? 'R' : 'Q';
+
+    std::cout << datetimeOutput << " " << srcAddressBuffer << " -> " << dstAddressBuffer 
+        << " (" << typeQR << " " 
+        << ntohs(dnsHeader->numOfQuestions) << "/" << ntohs(dnsHeader->numOfAnswers) << "/" 
+        << ntohs(dnsHeader->numOfAuthorityRRs) << "/" << ntohs(dnsHeader->numOfAdditionalRRs) << ")" 
+        << std::endl;
 
     return;
 }
