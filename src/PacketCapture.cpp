@@ -2,6 +2,7 @@
 #include <string.h>
 #include <signal.h>
 #include <pcap.h>
+#include <arpa/inet.h>
 #include "Configuration.h"
 #include "PacketCapture.h"
 
@@ -19,6 +20,18 @@ PacketCapture::PacketCapture()
 
 void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_char *packet)
 {
+    // set up IP address variables
+    struct in_addr* ipv4Src = NULL;
+    struct in_addr* ipv4Dst = NULL;
+    struct in6_addr* ipv6Src = NULL;
+    struct in6_addr* ipv6Dst = NULL;
+
+    // datetime
+    time_t timestamp = header->ts.tv_sec;
+    struct tm* datetime = localtime(&timestamp);
+    char datetimeOutput[100];
+    strftime(datetimeOutput, 100, "%Y-%m-%d %H:%M:%S", datetime);
+
     // ethernet header is 14B
     ushort ethHeaderLength = 14;
     // IPv4 header is variable, IPv6 header is 40B
@@ -34,11 +47,17 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
         // IP header's TIL 4b field contains the length of the IP header as a number of 32b words in the header
         ipHeaderLength = (ushort) packet[ethHeaderLength] & 0b00001111;
         ipHeaderLength *= 4;
+
+        ipv4Src = (in_addr*) &packet[ethHeaderLength + 12];
+        ipv4Dst = (in_addr*) &packet[ethHeaderLength + 16];
     }
     // if IPv6
     else if (ipVersion == 6)
     {
         ipHeaderLength = 40;
+
+        ipv6Src = (in6_addr*) &packet[ethHeaderLength + 8];
+        ipv6Dst = (in6_addr*) &packet[ethHeaderLength + 24];
     }
     else
     {
@@ -51,6 +70,34 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
     ushort DnsPayloadLength = (ushort) (((packet[ethHeaderLength + ipHeaderLength + 4] << 8)
         + packet[ethHeaderLength + ipHeaderLength + 5]) 
         - udpHeaderLength);
+
+    struct DnsHeader
+    {
+        ushort transactionId;
+        ushort flags;
+        ushort numOfQuestions;
+        ushort numOfAnswers;
+        ushort numOfAuthorityRRs;
+        ushort numOfAdditionalRRs;
+    };
+
+    struct DnsHeader* dnsHeader = (struct DnsHeader*) DnsPayload;
+
+    char srcAddressBuffer[100];
+    char dstAddressBuffer[100];
+
+    if (ipVersion == 4)
+    {
+        inet_ntop(AF_INET, ipv4Src, srcAddressBuffer, 100);
+        inet_ntop(AF_INET, ipv4Dst, dstAddressBuffer, 100);
+    }
+    else if (ipVersion == 6)
+    {
+        inet_ntop(AF_INET6, ipv6Src, srcAddressBuffer, 100);
+        inet_ntop(AF_INET6, ipv6Dst, dstAddressBuffer, 100);
+    }
+
+    std::cout << datetimeOutput << " " << srcAddressBuffer << " -> " << dstAddressBuffer << std::endl;
 
     return;
 }
