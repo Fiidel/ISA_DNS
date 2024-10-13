@@ -34,7 +34,7 @@ int CLParser::ParseClArgs(int argc, char** argv, Configuration *configuration)
                 configuration->translationsFile = optarg;
                 break;
             case 'h':
-                std::cout << "This is help." << std::endl;
+                std::cout << "Usage: ./dns-monitor (-i <interface> | -p <pcapfile>) [-v] [-d <domainsfile>] [-t <translationsfile>]" << std::endl;
                 return 0;
             default:
                 std::cout << "Invalid option(s). Type ./dns-monitor -h for usage." << std::endl;
