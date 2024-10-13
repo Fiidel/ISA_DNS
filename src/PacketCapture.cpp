@@ -42,9 +42,10 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
     // UDP header is 8B
     ushort udpHeaderLength = 8;
     
-    // Determine the IP header length.
+    // Determine the IP header length and protocol.
     ushort ipHeaderLength = 0;
     ushort ipVersion = packet[14] >> 4;
+    char protocolBuffer[4];
     // if IPv4
     if (ipVersion == 4)
     {
@@ -54,6 +55,20 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
 
         ipv4Src = (in_addr*) &packet[ethHeaderLength + 12];
         ipv4Dst = (in_addr*) &packet[ethHeaderLength + 16];
+        
+        u_char protocol = packet[ethHeaderLength + 9];
+        if (protocol == 6)
+        {
+            strcpy(protocolBuffer, "TCP");
+        }
+        else if (protocol == 17)
+        {
+            strcpy(protocolBuffer, "UDP");
+        }
+        else
+        {
+            strcpy(protocolBuffer, "");
+        }
     }
     // if IPv6
     else if (ipVersion == 6)
@@ -62,12 +77,30 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
 
         ipv6Src = (in6_addr*) &packet[ethHeaderLength + 8];
         ipv6Dst = (in6_addr*) &packet[ethHeaderLength + 24];
+
+        u_char protocol = packet[ethHeaderLength + 6];
+        if (protocol == 6)
+        {
+            strcpy(protocolBuffer, "TCP");
+        }
+        else if (protocol == 17)
+        {
+            strcpy(protocolBuffer, "UDP");
+        }
+        else
+        {
+            strcpy(protocolBuffer, "");
+        }
     }
     else
     {
         std::cerr << "IP version incorrect. Ignoring packet." << std::endl;
         return;
     }
+
+    // UDP header
+    ushort srcPort = ntohs(*((ushort*) &packet[ethHeaderLength + ipHeaderLength]));
+    ushort dstPort = ntohs(*((ushort*) &packet[ethHeaderLength + ipHeaderLength + 2]));
 
     // DNS payload and length
     const u_char *DnsPayload = &packet[ethHeaderLength + ipHeaderLength + udpHeaderLength];
@@ -87,6 +120,15 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
 
     struct DnsHeader* dnsHeader = (struct DnsHeader*) DnsPayload;
 
+    // convert byte order
+    dnsHeader->transactionId = ntohs(dnsHeader->transactionId);
+    dnsHeader->flags = ntohs(dnsHeader->flags);
+    dnsHeader->numOfQuestions = ntohs(dnsHeader->numOfQuestions);
+    dnsHeader->numOfAnswers = ntohs(dnsHeader->numOfAnswers);
+    dnsHeader->numOfAuthorityRRs = ntohs(dnsHeader->numOfAuthorityRRs);
+    dnsHeader->numOfAdditionalRRs = ntohs(dnsHeader->numOfAdditionalRRs);
+
+    // get ip addresses
     char srcAddressBuffer[100];
     char dstAddressBuffer[100];
 
@@ -108,14 +150,48 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
     if (configuration->verbose)
     {
         // TODO
-        std::cout << "Verbose placeholder." << std::endl;
+        std::cout << "Timestamp: " << datetimeOutput << std::endl;
+        std::cout << "SrcIP: " << srcAddressBuffer << std::endl;
+        std::cout << "DstIP: " << dstAddressBuffer << std::endl;
+        std::cout << "SrcPort: " << protocolBuffer << "/" << srcPort << std::endl;
+        std::cout << "DstPort: " << protocolBuffer << "/" << dstPort << std::endl;
+        std::cout << "Identifier: 0x" << std::hex << std::uppercase << dnsHeader->transactionId << std::nouppercase << std::dec << std::endl;
+        std::cout << "Flags: "
+            << "QR=" << ((dnsHeader->flags & 0b1000000000000000) >> 15) << ", "
+            << "OPCODE=" << ((dnsHeader->flags & 0b0111100000000000) >> 11) << ", "
+            << "AA=" << ((dnsHeader->flags & 0b0000010000000000) >> 10) << ", " 
+            << "TC=" << ((dnsHeader->flags & 0b0000001000000000) >> 9) << ", " 
+            << "RD=" << ((dnsHeader->flags & 0b0000000100000000) >> 8) << ", " 
+            << "RA=" << ((dnsHeader->flags & 0b0000000010000000) >> 7) << ", " 
+            << "AD=" << ((dnsHeader->flags & 0b0000000000100000) >> 5) << ", " 
+            << "CD=" << ((dnsHeader->flags & 0b0000000000010000) >> 4) << ", " 
+            << "RCODE=" << (dnsHeader->flags & 0b0000000000001111)
+            << std::endl
+            << std::endl
+            << "[Question Section]" << std::endl 
+            << "Placeholder"
+            << std::endl
+            << std::endl
+            << "[Answer Section]" << std::endl 
+            << "Placeholder"
+            << std::endl
+            << std::endl
+            << "[Authority Section]" << std::endl 
+            << "Placeholder"
+            << std::endl
+            << std::endl
+            << "[Additional Section]" << std::endl 
+            << "Placeholder"
+            << std::endl
+            << "===================="
+            << std::endl;
     }
     else
     {
         std::cout << datetimeOutput << " " << srcAddressBuffer << " -> " << dstAddressBuffer 
         << " (" << typeQR << " " 
-        << ntohs(dnsHeader->numOfQuestions) << "/" << ntohs(dnsHeader->numOfAnswers) << "/" 
-        << ntohs(dnsHeader->numOfAuthorityRRs) << "/" << ntohs(dnsHeader->numOfAdditionalRRs) << ")" 
+        << dnsHeader->numOfQuestions << "/" << dnsHeader->numOfAnswers << "/" 
+        << dnsHeader->numOfAuthorityRRs << "/" << dnsHeader->numOfAdditionalRRs << ")" 
         << std::endl;
     }
 
