@@ -21,6 +21,9 @@ PacketCapture::PacketCapture(Configuration* config)
 
 void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_char *packet)
 {
+    // recast the configuration from userArg back to Configuration*
+    Configuration* configuration = (Configuration*) userArg;
+
     // set up IP address variables
     struct in_addr* ipv4Src = NULL;
     struct in_addr* ipv4Dst = NULL;
@@ -101,11 +104,20 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
     // determine the type - query/response
     char typeQR = ((dnsHeader->flags & 0b1000000000000000) >> 15) ? 'R' : 'Q';
 
-    std::cout << datetimeOutput << " " << srcAddressBuffer << " -> " << dstAddressBuffer 
+    // output
+    if (configuration->verbose)
+    {
+        // TODO
+        std::cout << "Verbose placeholder." << std::endl;
+    }
+    else
+    {
+        std::cout << datetimeOutput << " " << srcAddressBuffer << " -> " << dstAddressBuffer 
         << " (" << typeQR << " " 
         << ntohs(dnsHeader->numOfQuestions) << "/" << ntohs(dnsHeader->numOfAnswers) << "/" 
         << ntohs(dnsHeader->numOfAuthorityRRs) << "/" << ntohs(dnsHeader->numOfAdditionalRRs) << ")" 
         << std::endl;
+    }
 
     return;
 }
@@ -199,7 +211,7 @@ int PacketCapture::OpenCaptureOnInterface()
     }
 
     // Loop over packets.
-    pcap_loop(handle, -1, packet_handler, NULL);
+    pcap_loop(handle, -1, packet_handler, (u_char*) this->configuration);
 
     // Cleanup.
     pcap_close(handle);
