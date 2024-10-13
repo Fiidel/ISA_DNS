@@ -3,7 +3,7 @@ CXXFLAGS = -Wall --std=c++11
 SRC_DIR = ./src
 EXECUTABLE = dns-monitor
 
-all: $(EXECUTABLE)
+all: clean $(EXECUTABLE)
 
 $(EXECUTABLE): main.o CLParser.o Configuration.o PacketCapture.o
 	$(CXX) $(CXXFLAGS) -o $(EXECUTABLE) main.o CLParser.o Configuration.o PacketCapture.o -lpcap
