@@ -13,8 +13,9 @@ void InterruptHandler(int sig)
     exit(0);
 }
 
-PacketCapture::PacketCapture()
+PacketCapture::PacketCapture(Configuration* config)
 {
+    this->configuration = config;
     signal(SIGINT, InterruptHandler);
 }
 
@@ -109,7 +110,7 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
     return;
 }
 
-int PacketCapture::OpenCaptureOnInterface(Configuration* configuration)
+int PacketCapture::OpenCaptureOnInterface()
 {
     pcap_t* handle = NULL;
     char errbuf[PCAP_ERRBUF_SIZE];

@@ -25,8 +25,8 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    PacketCapture packetCapture;
-    int pcapSuccess = packetCapture.OpenCaptureOnInterface(configuration);
+    PacketCapture packetCapture(configuration);
+    int pcapSuccess = packetCapture.OpenCaptureOnInterface();
     if (pcapSuccess != 0)
     {
         std::cerr << "PacketCapture error." << std::endl;

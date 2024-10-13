@@ -4,8 +4,9 @@
 class PacketCapture
 {
 public:
-    PacketCapture();
-    int OpenCaptureOnInterface(Configuration* configuration);
+    PacketCapture(Configuration* config);
+    Configuration* configuration;
+    int OpenCaptureOnInterface();
 };
 
 #endif
