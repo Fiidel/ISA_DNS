@@ -6,6 +6,53 @@
 #include "Configuration.h"
 #include "PacketCapture.h"
 
+void discernRRType(ushort type, char* buffer)
+{
+    switch (type)
+    {
+        case 1:
+            strcpy(buffer, "A");
+            break;
+        case 28:
+            strcpy(buffer, "AAAA");
+            break;
+        case 2:
+            strcpy(buffer, "NS");
+            break;
+        case 15:
+            strcpy(buffer, "MX");
+            break;
+        case 6:
+            strcpy(buffer, "SOA");
+            break;
+        case 5:
+            strcpy(buffer, "CNAME");
+            break;
+        case 33:
+            strcpy(buffer, "SRV");
+            break;
+    }
+}
+
+void discernRRClass(ushort type, char* buffer)
+{
+    switch (type)
+    {
+        case 1:
+            strcpy(buffer, "IN");
+            break;
+        case 2:
+            strcpy(buffer, "CS");
+            break;
+        case 3:
+            strcpy(buffer, "CH");
+            break;
+        case 4:
+            strcpy(buffer, "HS");
+            break;
+    }
+}
+
 void InterruptHandler(int sig)
 {
     std::cout << "Interrupt." << std::endl;
@@ -120,6 +167,10 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
 
     struct DnsHeader* dnsHeader = (struct DnsHeader*) DnsPayload;
 
+    // question, answer, ... sections
+    const u_char *DnsSections = &DnsPayload[12];
+    ushort DnsSectionsLength = DnsPayloadLength - 12;
+
     // convert byte order
     dnsHeader->transactionId = ntohs(dnsHeader->transactionId);
     dnsHeader->flags = ntohs(dnsHeader->flags);
@@ -146,6 +197,9 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
     // determine the type - query/response
     char typeQR = ((dnsHeader->flags & 0b1000000000000000) >> 15) ? 'R' : 'Q';
 
+    // buffer for answers, ...
+    char sectionBuffer[300];
+
     // output
     if (configuration->verbose)
     {
@@ -168,23 +222,60 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
             << "RCODE=" << (dnsHeader->flags & 0b0000000000001111)
             << std::endl
             << std::endl
-            << "[Question Section]" << std::endl 
-            << "Placeholder"
-            << std::endl
-            << std::endl
-            << "[Answer Section]" << std::endl 
-            << "Placeholder"
-            << std::endl
-            << std::endl
-            << "[Authority Section]" << std::endl 
-            << "Placeholder"
-            << std::endl
-            << std::endl
-            << "[Additional Section]" << std::endl 
-            << "Placeholder"
-            << std::endl
-            << "===================="
-            << std::endl;
+            << "[Question Section]" << std::endl;
+
+            int offset = 0;
+            int index = 0;
+            for (int i = 0; i < dnsHeader->numOfQuestions; i++)
+            {
+                while (DnsSections[index] != '\0')
+                {
+                    sectionBuffer[index] = DnsSections[index];
+                    index++;
+                }
+
+                sectionBuffer[index] = '\0';
+                index++;
+                
+                // print the name
+                std::cout << sectionBuffer;
+
+                // print the type and class
+                char typeBuffer[10];
+                char classBuffer[10];
+
+                ushort rrtype = ntohs(*((ushort*) &DnsSections[index]));
+                discernRRType(rrtype, typeBuffer);
+                index += 2;
+
+                ushort rrclass = ntohs(*((ushort*) &DnsSections[index]));
+                discernRRClass(rrclass, classBuffer);
+                index += 2;
+
+                std::cout << " " << typeBuffer
+                    << " " << classBuffer << std::endl;
+
+                // update offset and index
+                offset += index;
+                index = 0;
+            }
+
+            // << "Placeholder"
+            // << std::endl
+            // << std::endl
+            // << "[Answer Section]" << std::endl 
+            // << "Placeholder"
+            // << std::endl
+            // << std::endl
+            // << "[Authority Section]" << std::endl 
+            // << "Placeholder"
+            // << std::endl
+            // << std::endl
+            // << "[Additional Section]" << std::endl 
+            // << "Placeholder"
+            // << std::endl
+            
+            std::cout << "====================" << std::endl;
     }
     else
     {
