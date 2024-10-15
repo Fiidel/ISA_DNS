@@ -6,9 +6,9 @@
 #include "Configuration.h"
 #include "PacketCapture.h"
 
-void discernRRType(ushort type, char* buffer)
+void discernRRType(ushort rrtype, char* buffer)
 {
-    switch (type)
+    switch (rrtype)
     {
         case 1:
             strcpy(buffer, "A");
@@ -31,12 +31,15 @@ void discernRRType(ushort type, char* buffer)
         case 33:
             strcpy(buffer, "SRV");
             break;
+        default:
+            strcpy(buffer, "");
+            break;
     }
 }
 
-void discernRRClass(ushort type, char* buffer)
+void discernRRClass(ushort rrclass, char* buffer)
 {
-    switch (type)
+    switch (rrclass)
     {
         case 1:
             strcpy(buffer, "IN");
@@ -49,6 +52,9 @@ void discernRRClass(ushort type, char* buffer)
             break;
         case 4:
             strcpy(buffer, "HS");
+            break;
+        default:
+            strcpy(buffer, "");
             break;
     }
 }
@@ -224,40 +230,48 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
             << std::endl
             << "[Question Section]" << std::endl;
 
-            int offset = 0;
-            int index = 0;
-            for (int i = 0; i < dnsHeader->numOfQuestions; i++)
+            int packetIndex = 0;
+            int bufferIndex = 0;
+            for (int questionNum = 0; questionNum < dnsHeader->numOfQuestions; questionNum++)
             {
-                while (DnsSections[index] != '\0')
+                bufferIndex = 0;
+
+                while (DnsSections[packetIndex] != '\0')
                 {
-                    sectionBuffer[index] = DnsSections[index];
-                    index++;
+                    int domainNameLength = DnsSections[packetIndex];
+                    packetIndex++;
+
+                    for (int i = 0; i < domainNameLength; i++)
+                    {
+                        sectionBuffer[bufferIndex] = DnsSections[packetIndex];
+                        bufferIndex++;
+                        packetIndex++;
+                    }
+                    
+                    sectionBuffer[bufferIndex] = '.';
+                    bufferIndex++;
                 }
 
-                sectionBuffer[index] = '\0';
-                index++;
-                
+                sectionBuffer[bufferIndex] = '\0';
+                packetIndex++;
+
                 // print the name
                 std::cout << sectionBuffer;
 
                 // print the type and class
                 char typeBuffer[10];
                 char classBuffer[10];
-
-                ushort rrtype = ntohs(*((ushort*) &DnsSections[index]));
+                
+                ushort rrtype = ntohs(*((ushort*) &DnsSections[packetIndex]));
                 discernRRType(rrtype, typeBuffer);
-                index += 2;
+                packetIndex += 2;
 
-                ushort rrclass = ntohs(*((ushort*) &DnsSections[index]));
+                ushort rrclass = ntohs(*((ushort*) &DnsSections[packetIndex]));
                 discernRRClass(rrclass, classBuffer);
-                index += 2;
+                packetIndex += 2;
 
-                std::cout << " " << typeBuffer
-                    << " " << classBuffer << std::endl;
-
-                // update offset and index
-                offset += index;
-                index = 0;
+                std::cout << " " << classBuffer
+                    << " " << typeBuffer << std::endl;
             }
 
             // << "Placeholder"
