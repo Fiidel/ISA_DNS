@@ -191,6 +191,20 @@ void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSection
 
         std::cout << " " << rrDataBuffer;
     }
+    else if (strcmp(type, "A") == 0)
+    {
+        char addressBuffer[100];
+        struct in_addr ipv4 = *((in_addr*) &DnsSections[*packetIndex]);
+        inet_ntop(AF_INET, &ipv4, addressBuffer, 100);
+        std::cout << " " << addressBuffer;
+    }
+    else if (strcmp(type, "AAAA") == 0)
+    {
+        char addressBuffer[100];
+        struct in6_addr ipv6 = *((in6_addr*) &DnsSections[*packetIndex]);
+        inet_ntop(AF_INET6, &ipv6, addressBuffer, 100);
+        std::cout << " " << addressBuffer;
+    }
 
     packetIndex += dataLength;
 }
