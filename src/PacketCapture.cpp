@@ -209,7 +209,6 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
     // output
     if (configuration->verbose)
     {
-        // TODO
         std::cout << "Timestamp: " << datetimeOutput << std::endl;
         std::cout << "SrcIP: " << srcAddressBuffer << std::endl;
         std::cout << "DstIP: " << dstAddressBuffer << std::endl;
@@ -230,66 +229,70 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
             << std::endl
             << "[Question Section]" << std::endl;
 
-            int packetIndex = 0;
-            int bufferIndex = 0;
-            for (int questionNum = 0; questionNum < dnsHeader->numOfQuestions; questionNum++)
+        int packetIndex = 0;
+        int bufferIndex = 0;
+        for (int questionNum = 0; questionNum < dnsHeader->numOfQuestions; questionNum++)
+        {
+            bufferIndex = 0;
+
+            while (DnsSections[packetIndex] != '\0')
             {
-                bufferIndex = 0;
-
-                while (DnsSections[packetIndex] != '\0')
-                {
-                    int domainNameLength = DnsSections[packetIndex];
-                    packetIndex++;
-
-                    for (int i = 0; i < domainNameLength; i++)
-                    {
-                        sectionBuffer[bufferIndex] = DnsSections[packetIndex];
-                        bufferIndex++;
-                        packetIndex++;
-                    }
-                    
-                    sectionBuffer[bufferIndex] = '.';
-                    bufferIndex++;
-                }
-
-                sectionBuffer[bufferIndex] = '\0';
+                int domainNameLength = DnsSections[packetIndex];
                 packetIndex++;
 
-                // print the name
-                std::cout << sectionBuffer;
-
-                // print the type and class
-                char typeBuffer[10];
-                char classBuffer[10];
+                for (int i = 0; i < domainNameLength; i++)
+                {
+                    sectionBuffer[bufferIndex] = DnsSections[packetIndex];
+                    bufferIndex++;
+                    packetIndex++;
+                }
                 
-                ushort rrtype = ntohs(*((ushort*) &DnsSections[packetIndex]));
-                discernRRType(rrtype, typeBuffer);
-                packetIndex += 2;
-
-                ushort rrclass = ntohs(*((ushort*) &DnsSections[packetIndex]));
-                discernRRClass(rrclass, classBuffer);
-                packetIndex += 2;
-
-                std::cout << " " << classBuffer
-                    << " " << typeBuffer << std::endl;
+                sectionBuffer[bufferIndex] = '.';
+                bufferIndex++;
             }
 
-            // << "Placeholder"
-            // << std::endl
-            // << std::endl
-            // << "[Answer Section]" << std::endl 
-            // << "Placeholder"
-            // << std::endl
-            // << std::endl
-            // << "[Authority Section]" << std::endl 
-            // << "Placeholder"
-            // << std::endl
-            // << std::endl
-            // << "[Additional Section]" << std::endl 
-            // << "Placeholder"
-            // << std::endl
+            sectionBuffer[bufferIndex] = '\0';
+            packetIndex++;
+
+            // print the name
+            std::cout << sectionBuffer;
+
+            // print the type and class
+            char typeBuffer[10];
+            char classBuffer[10];
             
-            std::cout << "====================" << std::endl;
+            ushort rrtype = ntohs(*((ushort*) &DnsSections[packetIndex]));
+            discernRRType(rrtype, typeBuffer);
+            packetIndex += 2;
+
+            ushort rrclass = ntohs(*((ushort*) &DnsSections[packetIndex]));
+            discernRRClass(rrclass, classBuffer);
+            packetIndex += 2;
+
+            std::cout << " " << classBuffer
+                << " " << typeBuffer << std::endl;
+        }
+
+        // === divider ============================================================================
+        std::cout << std::endl;
+        
+        std::cout << "[Answer Section]" << std::endl;
+        // TODO: support for the various RR types like CNAME etc.
+        // must be able to parse into text format and print - see verbose output examples in assignment
+        
+        
+        // << "Placeholder"
+        // << std::endl
+        // << std::endl
+        // << "[Authority Section]" << std::endl 
+        // << "Placeholder"
+        // << std::endl
+        // << std::endl
+        // << "[Additional Section]" << std::endl 
+        // << "Placeholder"
+        // << std::endl
+        
+        std::cout << "====================" << std::endl;
     }
     else
     {
