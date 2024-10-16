@@ -181,6 +181,20 @@ void printCommonRrInformation(char* sectionBuffer, int ttl, char* classBuffer, c
         << " " << typeBuffer;
 }
 
+void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSections, char* type, char* rrDataBuffer)
+{
+    if (strcmp(type, "CNAME") == 0)
+    {
+        // cant change the actual packetIndex as it will change at the end of the function, so use a substitute
+        int proxyPacketIndex = *packetIndex;
+        extractName(&proxyPacketIndex, DnsSections, rrDataBuffer);
+
+        std::cout << " " << rrDataBuffer;
+    }
+
+    packetIndex += dataLength;
+}
+
 void InterruptHandler(int sig)
 {
     std::cout << "Interrupt." << std::endl;
@@ -350,6 +364,7 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
 
         // buffer for answers, ...
         char sectionBuffer[300];
+        char rrDataBuffer[300];
         char typeBuffer[10];
         char classBuffer[10];
         int ttl = 0;
@@ -372,17 +387,12 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
         std::cout << std::endl;
         
         std::cout << "[Answer Section]" << std::endl;
-        // TODO: support for the various RR types like CNAME etc.
-        // must be able to parse into text format and print - see verbose output examples in assignment
         for (int answerNum = 0; answerNum < dnsHeader->numOfAnswers; answerNum++)
         {
             extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength);
-
-            // TODO: process data
-            // skip data section for now
-            packetIndex += dataLength;
-
             printCommonRrInformation(sectionBuffer, ttl, classBuffer, typeBuffer);
+
+            processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer);
             
             std::cout << std::endl;
         }
@@ -391,16 +401,22 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
         std::cout << std::endl;
         
         std::cout << "[Authority Section]" << std::endl;
-        // << "Placeholder"
-        // << std::endl
+        for (int authorityNum = 0; authorityNum < dnsHeader->numOfAuthorityRRs; authorityNum++)
+        {
+            extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength);
+            printCommonRrInformation(sectionBuffer, ttl, classBuffer, typeBuffer);
+
+            processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer);
+            
+            std::cout << std::endl;
+        }
 
         // === divider ============================================================================
         // std::cout << std::endl;
         
-        // << "[Additional Section]" << std::endl 
-        // << "Placeholder"
-        // << std::endl
-        
+        // std::cout<< "[Additional Section]" << std::endl;
+        // TODO
+
         std::cout << "====================" << std::endl;
     }
     else
