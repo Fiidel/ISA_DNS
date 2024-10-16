@@ -59,28 +59,72 @@ void discernRRClass(ushort rrclass, char* buffer)
     }
 }
 
-void extractName(int* bufferIndex, int* packetIndex, const u_char* DnsSections, char* sectionBuffer)
+void extractName(int* packetIndex, const u_char* DnsSections, char* sectionBuffer)
 {
-    *bufferIndex = 0;
+    int bufferIndex = 0;
+    int domainNameIndex = 0;
+    bool isCompressed = false;
+    int dnsHeaderLength = 12; // used to correctly calculate offset for compressed domain names
 
-    while (DnsSections[*packetIndex] != '\0')
+    // check if the first byte is the full name or a pointer to the name
+    if (DnsSections[*packetIndex] >= 0xC0)
     {
-        int domainNameLength = DnsSections[*packetIndex];
-        (*packetIndex)++;
+        isCompressed = true;
 
-        for (int i = 0; i < domainNameLength; i++)
-        {
-            sectionBuffer[*bufferIndex] = DnsSections[*packetIndex];
-            (*bufferIndex)++;
-            (*packetIndex)++;
-        }
+        // the last 14 bits are the offset for the dns payload where the name can be found
+        ushort nameOffset = ntohs(*((ushort*) &DnsSections[*packetIndex]));
+        nameOffset = nameOffset & 0b0011111111111111;
         
-        sectionBuffer[*bufferIndex] = '.';
-        (*bufferIndex)++;
+        // this function receives DnsSections, which is the payload without the header;
+        // we need to account for the offset, as the 14bits are the offset from the start
+        // of the whole DNS packet, which includes the DNS header
+        domainNameIndex = nameOffset - dnsHeaderLength;
+        
+        // the offset pointer is stored in 2 bytes which we want to skip when we return fron this function
+        *packetIndex += 2;
+    }
+    else
+    {
+        // if the name isn't compressed, the first byte is the start of the full domain name
+        domainNameIndex = *packetIndex;
     }
 
-    sectionBuffer[*bufferIndex] = '\0';
-    (*packetIndex)++;
+    // read the domain names until the terminating null byte
+    while (DnsSections[domainNameIndex] != '\0')
+    {
+        // the first byte denotes the length of the domain name
+        int domainNameLength = DnsSections[domainNameIndex];
+        domainNameIndex++;
+
+        // the domain name
+        for (int i = 0; i < domainNameLength; i++)
+        {
+            sectionBuffer[bufferIndex] = DnsSections[domainNameIndex];
+            bufferIndex++;
+            domainNameIndex++;
+        }
+        
+        sectionBuffer[bufferIndex] = '.';
+        bufferIndex++;
+
+        // packetIndex needs to increase at the same rate as domainNameIndex if the domain name 
+        // isn't compressed (= accessed via a pointer)
+        if (!isCompressed)
+        {
+            *packetIndex = domainNameIndex;
+        }
+    }
+
+    // set the last byte of the domain name buffer to a null byte
+    sectionBuffer[bufferIndex] = '\0';
+    
+    // if the domain name isn't compressed, you also need to skip the terminating null byte that  
+    // denotes the end of the domain name section in the packet so that upon return from this
+    // function, the packetIndex can be used correctly
+    if (!isCompressed)
+    {
+        (*packetIndex)++;
+    }
 }
 
 void extractTypeAndClass(int* packetIndex, const u_char* DnsSections, char* typeBuffer, char* classBuffer)
@@ -92,6 +136,12 @@ void extractTypeAndClass(int* packetIndex, const u_char* DnsSections, char* type
     ushort rrclass = ntohs(*((ushort*) &DnsSections[*packetIndex]));
     discernRRClass(rrclass, classBuffer);
     *packetIndex += 2;
+}
+
+void extractTtl(int* ttl, int* packetIndex, const u_char* DnsSections)
+{
+    *ttl = ntohl(*((int*) &DnsSections[*packetIndex]));
+    *packetIndex += 4;
 }
 
 void InterruptHandler(int sig)
@@ -265,12 +315,12 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
         char sectionBuffer[300];
         char typeBuffer[10];
         char classBuffer[10];
+        int ttl = 0;
         int packetIndex = 0;
-        int bufferIndex = 0;
 
         for (int questionNum = 0; questionNum < dnsHeader->numOfQuestions; questionNum++)
         {
-            extractName(&bufferIndex, &packetIndex, DnsSections, sectionBuffer);
+            extractName(&packetIndex, DnsSections, sectionBuffer);
             extractTypeAndClass(&packetIndex, DnsSections, typeBuffer, classBuffer);
 
             // print the name, type and class
@@ -286,10 +336,28 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
         std::cout << "[Answer Section]" << std::endl;
         // TODO: support for the various RR types like CNAME etc.
         // must be able to parse into text format and print - see verbose output examples in assignment
+        for (int answerNum = 0; answerNum < dnsHeader->numOfAnswers; answerNum++)
+        {
+            extractName(&packetIndex, DnsSections, sectionBuffer);
+            extractTypeAndClass(&packetIndex, DnsSections, typeBuffer, classBuffer);
+            extractTtl(&ttl, &packetIndex, DnsSections);
+
+            ushort dataLength = ntohs(*((ushort*) &DnsSections[packetIndex]));
+            packetIndex += 2;
+
+            // TODO: process data
+            // skip data section for now
+            packetIndex += dataLength;
+
+            // print the name, type and class
+            std::cout << sectionBuffer 
+                << " " << std::to_string(ttl)
+                << " " << classBuffer
+                << " " << typeBuffer 
+                << std::endl;
+        }
         
-        
-        // << "Placeholder"
-        // << std::endl
+
         // << std::endl
         // << "[Authority Section]" << std::endl 
         // << "Placeholder"
