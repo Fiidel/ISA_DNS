@@ -59,6 +59,41 @@ void discernRRClass(ushort rrclass, char* buffer)
     }
 }
 
+void extractName(int* bufferIndex, int* packetIndex, const u_char* DnsSections, char* sectionBuffer)
+{
+    *bufferIndex = 0;
+
+    while (DnsSections[*packetIndex] != '\0')
+    {
+        int domainNameLength = DnsSections[*packetIndex];
+        (*packetIndex)++;
+
+        for (int i = 0; i < domainNameLength; i++)
+        {
+            sectionBuffer[*bufferIndex] = DnsSections[*packetIndex];
+            (*bufferIndex)++;
+            (*packetIndex)++;
+        }
+        
+        sectionBuffer[*bufferIndex] = '.';
+        (*bufferIndex)++;
+    }
+
+    sectionBuffer[*bufferIndex] = '\0';
+    (*packetIndex)++;
+}
+
+void extractTypeAndClass(int* packetIndex, const u_char* DnsSections, char* typeBuffer, char* classBuffer)
+{
+    ushort rrtype = ntohs(*((ushort*) &DnsSections[*packetIndex]));
+    discernRRType(rrtype, typeBuffer);
+    *packetIndex += 2;
+
+    ushort rrclass = ntohs(*((ushort*) &DnsSections[*packetIndex]));
+    discernRRClass(rrclass, classBuffer);
+    *packetIndex += 2;
+}
+
 void InterruptHandler(int sig)
 {
     std::cout << "Interrupt." << std::endl;
@@ -203,9 +238,6 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
     // determine the type - query/response
     char typeQR = ((dnsHeader->flags & 0b1000000000000000) >> 15) ? 'R' : 'Q';
 
-    // buffer for answers, ...
-    char sectionBuffer[300];
-
     // output
     if (configuration->verbose)
     {
@@ -229,48 +261,23 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
             << std::endl
             << "[Question Section]" << std::endl;
 
+        // buffer for answers, ...
+        char sectionBuffer[300];
+        char typeBuffer[10];
+        char classBuffer[10];
         int packetIndex = 0;
         int bufferIndex = 0;
+
         for (int questionNum = 0; questionNum < dnsHeader->numOfQuestions; questionNum++)
         {
-            bufferIndex = 0;
+            extractName(&bufferIndex, &packetIndex, DnsSections, sectionBuffer);
+            extractTypeAndClass(&packetIndex, DnsSections, typeBuffer, classBuffer);
 
-            while (DnsSections[packetIndex] != '\0')
-            {
-                int domainNameLength = DnsSections[packetIndex];
-                packetIndex++;
-
-                for (int i = 0; i < domainNameLength; i++)
-                {
-                    sectionBuffer[bufferIndex] = DnsSections[packetIndex];
-                    bufferIndex++;
-                    packetIndex++;
-                }
-                
-                sectionBuffer[bufferIndex] = '.';
-                bufferIndex++;
-            }
-
-            sectionBuffer[bufferIndex] = '\0';
-            packetIndex++;
-
-            // print the name
-            std::cout << sectionBuffer;
-
-            // print the type and class
-            char typeBuffer[10];
-            char classBuffer[10];
-            
-            ushort rrtype = ntohs(*((ushort*) &DnsSections[packetIndex]));
-            discernRRType(rrtype, typeBuffer);
-            packetIndex += 2;
-
-            ushort rrclass = ntohs(*((ushort*) &DnsSections[packetIndex]));
-            discernRRClass(rrclass, classBuffer);
-            packetIndex += 2;
-
-            std::cout << " " << classBuffer
-                << " " << typeBuffer << std::endl;
+            // print the name, type and class
+            std::cout << sectionBuffer 
+                << " " << classBuffer
+                << " " << typeBuffer 
+                << std::endl;
         }
 
         // === divider ============================================================================
