@@ -59,29 +59,38 @@ void discernRRClass(ushort rrclass, char* buffer)
     }
 }
 
+ushort extractNameOffset(const u_char* DnsSections, int packetIndex)
+{
+    // the last 14 bits are the offset for the dns payload where the name can be found
+    ushort nameOffset = ntohs(*((ushort*) &DnsSections[packetIndex]));
+    nameOffset = nameOffset & 0b0011111111111111;
+    return nameOffset;
+}
+
 void extractName(int* packetIndex, const u_char* DnsSections, char* sectionBuffer)
 {
     int bufferIndex = 0;
     int domainNameIndex = 0;
-    bool isCompressed = false;
+    bool trackPacketOffset = true; // true if the domain name isn't compressed
     int dnsHeaderLength = 12; // used to correctly calculate offset for compressed domain names
 
     // check if the first byte is the full name or a pointer to the name
     if (DnsSections[*packetIndex] >= 0xC0)
     {
-        isCompressed = true;
+        // turn off offset tracking
+        trackPacketOffset = false;
 
-        // the last 14 bits are the offset for the dns payload where the name can be found
-        ushort nameOffset = ntohs(*((ushort*) &DnsSections[*packetIndex]));
-        nameOffset = nameOffset & 0b0011111111111111;
+        // get the offset and start index for the domain name parsing
+        ushort nameOffset = extractNameOffset(DnsSections, *packetIndex);
         
         // this function receives DnsSections, which is the payload without the header;
         // we need to account for the offset, as the 14bits are the offset from the start
         // of the whole DNS packet, which includes the DNS header
         domainNameIndex = nameOffset - dnsHeaderLength;
         
-        // the offset pointer is stored in 2 bytes which we want to skip when we return fron this function
-        *packetIndex += 2;
+        // the offset pointer is stored in 2 bytes which we want to skip when we return fron this function;
+        // packetIndex is increased by 1 at the end of the function (see below), so we only add 1 here rather than 2
+        *packetIndex += 1;
     }
     else
     {
@@ -92,9 +101,25 @@ void extractName(int* packetIndex, const u_char* DnsSections, char* sectionBuffe
     // read the domain names until the terminating null byte
     while (DnsSections[domainNameIndex] != '\0')
     {
+        // compressed names can have offset pointers too
+        if (DnsSections[domainNameIndex] >= 0xC0)
+        {
+            trackPacketOffset = false;
+            ushort nameOffset = extractNameOffset(DnsSections, *packetIndex);
+            domainNameIndex = nameOffset - dnsHeaderLength;
+        }
+
         // the first byte denotes the length of the domain name
         int domainNameLength = DnsSections[domainNameIndex];
         domainNameIndex++;
+
+        // packetIndex needs to increase at the same rate as domainNameIndex if the domain name 
+        // isn't compressed (= accessed via a pointer)
+        if (trackPacketOffset)
+        {
+            // increase by 1 (for the byte denoting the length of the domain name) + the length of the domain name
+            *packetIndex += 1 + domainNameLength;
+        }
 
         // the domain name
         for (int i = 0; i < domainNameLength; i++)
@@ -106,25 +131,14 @@ void extractName(int* packetIndex, const u_char* DnsSections, char* sectionBuffe
         
         sectionBuffer[bufferIndex] = '.';
         bufferIndex++;
-
-        // packetIndex needs to increase at the same rate as domainNameIndex if the domain name 
-        // isn't compressed (= accessed via a pointer)
-        if (!isCompressed)
-        {
-            *packetIndex = domainNameIndex;
-        }
     }
 
     // set the last byte of the domain name buffer to a null byte
     sectionBuffer[bufferIndex] = '\0';
     
-    // if the domain name isn't compressed, you also need to skip the terminating null byte that  
-    // denotes the end of the domain name section in the packet so that upon return from this
-    // function, the packetIndex can be used correctly
-    if (!isCompressed)
-    {
-        (*packetIndex)++;
-    }
+    // you also need to skip the terminating null byte that denotes the end of the domain name section
+    // in the packet so that upon return from this function, the packetIndex can be used correctly
+    (*packetIndex)++;
 }
 
 void extractTypeAndClass(int* packetIndex, const u_char* DnsSections, char* typeBuffer, char* classBuffer)
