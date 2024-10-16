@@ -158,6 +158,29 @@ void extractTtl(int* ttl, int* packetIndex, const u_char* DnsSections)
     *packetIndex += 4;
 }
 
+void extractDataLength(ushort* dataLength, int* packetIndex, const u_char* DnsSections)
+{
+    *dataLength = ntohs(*((ushort*) &DnsSections[*packetIndex]));
+    *packetIndex += 2;
+}
+
+void extractCommonRrInformation(int* packetIndex, const u_char* DnsSections, char* sectionBuffer, char* typeBuffer, char* classBuffer, int* ttl, ushort* dataLength)
+{
+    extractName(packetIndex, DnsSections, sectionBuffer);
+    extractTypeAndClass(packetIndex, DnsSections, typeBuffer, classBuffer);
+    extractTtl(ttl, packetIndex, DnsSections);
+    extractDataLength(dataLength, packetIndex, DnsSections);
+}
+
+void printCommonRrInformation(char* sectionBuffer, int ttl, char* classBuffer, char* typeBuffer)
+{
+    // print the name, ttl, class and type
+    std::cout << sectionBuffer 
+        << " " << std::to_string(ttl)
+        << " " << classBuffer
+        << " " << typeBuffer;
+}
+
 void InterruptHandler(int sig)
 {
     std::cout << "Interrupt." << std::endl;
@@ -330,6 +353,7 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
         char typeBuffer[10];
         char classBuffer[10];
         int ttl = 0;
+        ushort dataLength = 0;
         int packetIndex = 0;
 
         for (int questionNum = 0; questionNum < dnsHeader->numOfQuestions; questionNum++)
@@ -352,31 +376,27 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
         // must be able to parse into text format and print - see verbose output examples in assignment
         for (int answerNum = 0; answerNum < dnsHeader->numOfAnswers; answerNum++)
         {
-            extractName(&packetIndex, DnsSections, sectionBuffer);
-            extractTypeAndClass(&packetIndex, DnsSections, typeBuffer, classBuffer);
-            extractTtl(&ttl, &packetIndex, DnsSections);
-
-            ushort dataLength = ntohs(*((ushort*) &DnsSections[packetIndex]));
-            packetIndex += 2;
+            extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength);
 
             // TODO: process data
             // skip data section for now
             packetIndex += dataLength;
 
-            // print the name, type and class
-            std::cout << sectionBuffer 
-                << " " << std::to_string(ttl)
-                << " " << classBuffer
-                << " " << typeBuffer 
-                << std::endl;
+            printCommonRrInformation(sectionBuffer, ttl, classBuffer, typeBuffer);
+            
+            std::cout << std::endl;
         }
         
-
-        // << std::endl
-        // << "[Authority Section]" << std::endl 
+        // === divider ============================================================================
+        std::cout << std::endl;
+        
+        std::cout << "[Authority Section]" << std::endl;
         // << "Placeholder"
         // << std::endl
-        // << std::endl
+
+        // === divider ============================================================================
+        // std::cout << std::endl;
+        
         // << "[Additional Section]" << std::endl 
         // << "Placeholder"
         // << std::endl
