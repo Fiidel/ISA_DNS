@@ -105,13 +105,12 @@ void extractName(int* packetIndex, const u_char* DnsSections, char* sectionBuffe
         if (DnsSections[domainNameIndex] >= 0xC0)
         {
             trackPacketOffset = false;
-            ushort nameOffset = extractNameOffset(DnsSections, *packetIndex);
+            ushort nameOffset = extractNameOffset(DnsSections, domainNameIndex);
             domainNameIndex = nameOffset - dnsHeaderLength;
         }
 
         // the first byte denotes the length of the domain name
         int domainNameLength = DnsSections[domainNameIndex];
-        domainNameIndex++;
 
         // packetIndex needs to increase at the same rate as domainNameIndex if the domain name 
         // isn't compressed (= accessed via a pointer)
@@ -122,6 +121,7 @@ void extractName(int* packetIndex, const u_char* DnsSections, char* sectionBuffe
         }
 
         // the domain name
+        domainNameIndex++; // skips the byte that denotes the length of the domain name
         for (int i = 0; i < domainNameLength; i++)
         {
             sectionBuffer[bufferIndex] = DnsSections[domainNameIndex];
