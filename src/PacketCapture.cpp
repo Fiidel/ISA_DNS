@@ -141,12 +141,15 @@ void extractName(int* packetIndex, const u_char* DnsSections, char* sectionBuffe
     (*packetIndex)++;
 }
 
-void extractTypeAndClass(int* packetIndex, const u_char* DnsSections, char* typeBuffer, char* classBuffer)
+void extractType(int* packetIndex, const u_char* DnsSections, char* typeBuffer)
 {
     ushort rrtype = ntohs(*((ushort*) &DnsSections[*packetIndex]));
     discernRRType(rrtype, typeBuffer);
     *packetIndex += 2;
+}
 
+void extractClass(int* packetIndex, const u_char* DnsSections, char* classBuffer)
+{
     ushort rrclass = ntohs(*((ushort*) &DnsSections[*packetIndex]));
     discernRRClass(rrclass, classBuffer);
     *packetIndex += 2;
@@ -167,7 +170,8 @@ void extractDataLength(ushort* dataLength, int* packetIndex, const u_char* DnsSe
 void extractCommonRrInformation(int* packetIndex, const u_char* DnsSections, char* sectionBuffer, char* typeBuffer, char* classBuffer, int* ttl, ushort* dataLength)
 {
     extractName(packetIndex, DnsSections, sectionBuffer);
-    extractTypeAndClass(packetIndex, DnsSections, typeBuffer, classBuffer);
+    extractType(packetIndex, DnsSections, typeBuffer);
+    extractClass(packetIndex, DnsSections, classBuffer);
     extractTtl(ttl, packetIndex, DnsSections);
     extractDataLength(dataLength, packetIndex, DnsSections);
 }
@@ -450,7 +454,8 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
         for (int questionNum = 0; questionNum < dnsHeader->numOfQuestions; questionNum++)
         {
             extractName(&packetIndex, DnsSections, sectionBuffer);
-            extractTypeAndClass(&packetIndex, DnsSections, typeBuffer, classBuffer);
+            extractType(&packetIndex, DnsSections, typeBuffer);
+            extractClass(&packetIndex, DnsSections, classBuffer);
 
             // print the name, type and class
             std::cout << sectionBuffer 
