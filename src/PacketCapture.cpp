@@ -31,6 +31,9 @@ void discernRRType(ushort rrtype, char* buffer)
         case 33:
             strcpy(buffer, "SRV");
             break;
+        case 41:
+            strcpy(buffer, "OPT");
+            break;
         default:
             strcpy(buffer, "");
             break;
@@ -499,10 +502,28 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
         }
 
         // === divider ============================================================================
-        // std::cout << std::endl;
+        std::cout << std::endl;
         
-        // std::cout<< "[Additional Section]" << std::endl;
-        // TODO
+        std::cout<< "[Additional Section]" << std::endl;
+        for (int additionalNum = 0; additionalNum < dnsHeader->numOfAdditionalRRs; additionalNum++)
+        {
+            // OPT type can be ignored as per the assignment (OPT breaks the record format and would require a new parsing function)
+
+            // we do not want to update the packetIndex yet in case the record is OPT so we use a proxy
+            int proxyPacketIndex = packetIndex;
+            extractName(&proxyPacketIndex, DnsSections, sectionBuffer);
+            extractType(&proxyPacketIndex, DnsSections, typeBuffer);
+
+            if (strcmp(typeBuffer, "OPT") != 0)
+            {
+                extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength);
+                printCommonRrInformation(sectionBuffer, ttl, classBuffer, typeBuffer);
+
+                processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer);
+                
+                std::cout << std::endl;   
+            }
+        }
 
         std::cout << "====================" << std::endl;
     }
