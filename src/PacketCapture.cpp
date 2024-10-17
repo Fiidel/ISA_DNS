@@ -183,7 +183,7 @@ void printCommonRrInformation(char* sectionBuffer, int ttl, char* classBuffer, c
 
 void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSections, char* type, char* rrDataBuffer)
 {
-    if (strcmp(type, "CNAME") == 0)
+    if ((strcmp(type, "CNAME") == 0) || (strcmp(type, "NS") == 0))
     {
         // cant change the actual packetIndex as it will change at the end of the function, so use a substitute
         int proxyPacketIndex = *packetIndex;
@@ -205,8 +205,71 @@ void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSection
         inet_ntop(AF_INET6, &ipv6, addressBuffer, 100);
         std::cout << " " << addressBuffer;
     }
+    else if (strcmp(type, "MX") == 0)
+    {
+        ushort priority = ntohs(*((ushort*) &DnsSections[*packetIndex]));
+        int proxyPacketIndex = *packetIndex + 2;
 
-    packetIndex += dataLength;
+        extractName(&proxyPacketIndex, DnsSections, rrDataBuffer);
+        std::cout << " " << priority << " " << rrDataBuffer;
+    }
+    else if (strcmp(type, "SOA") == 0)
+    {
+        int proxyPacketIndex = *packetIndex;
+        
+        // TODO: THERE IS AN ERROR SOMEWHERE HERE, THE RNAME SPITS OUT MUMBO JUMBO
+        // MNAME
+        extractName(&proxyPacketIndex, DnsSections, rrDataBuffer);
+        std::cout << " " << rrDataBuffer;
+
+        // RNAME
+        extractName(&proxyPacketIndex, DnsSections, rrDataBuffer);
+        std::cout << " " << rrDataBuffer;
+
+        // SERIAL
+        unsigned int serial = ntohl(*((int*) &DnsSections[proxyPacketIndex]));
+        proxyPacketIndex += 4;
+        std::cout << " " << std::to_string(serial);
+
+        // REFRESH
+        int refresh = ntohl(*((int*) &DnsSections[proxyPacketIndex]));
+        proxyPacketIndex += 4;
+        std::cout << " " << std::to_string(refresh);
+
+        // RETRY
+        int retry = ntohl(*((int*) &DnsSections[proxyPacketIndex]));
+        proxyPacketIndex += 4;
+        std::cout << " " << std::to_string(retry);
+
+        // EXPIRE
+        int expire = ntohl(*((int*) &DnsSections[proxyPacketIndex]));
+        proxyPacketIndex += 4;
+        std::cout << " " << std::to_string(expire);
+
+        // MINIMUM
+        unsigned int minimum = ntohl(*((int*) &DnsSections[proxyPacketIndex]));
+        proxyPacketIndex += 4;
+        std::cout << " " << std::to_string(minimum);
+    }
+    else if (strcmp(type, "SRV") == 0)
+    {
+        int proxyPacketIndex = *packetIndex;
+
+        ushort priority = ntohs(*((ushort*) &DnsSections[proxyPacketIndex]));
+        proxyPacketIndex += 2;
+
+        ushort weight = ntohs(*((ushort*) &DnsSections[proxyPacketIndex]));
+        proxyPacketIndex += 2;
+
+        ushort port = ntohs(*((ushort*) &DnsSections[proxyPacketIndex]));
+        proxyPacketIndex += 2;
+
+        extractName(&proxyPacketIndex, DnsSections, rrDataBuffer);
+        
+        std::cout << " " << priority << " " << weight << " " << port << " " << rrDataBuffer;
+    }
+
+    *packetIndex += dataLength;
 }
 
 void InterruptHandler(int sig)
@@ -377,7 +440,7 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
             << "[Question Section]" << std::endl;
 
         // buffer for answers, ...
-        char sectionBuffer[300];
+        char sectionBuffer[1000];
         char rrDataBuffer[300];
         char typeBuffer[10];
         char classBuffer[10];
