@@ -217,7 +217,6 @@ void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSection
     {
         int proxyPacketIndex = *packetIndex;
         
-        // TODO: THERE IS AN ERROR SOMEWHERE HERE, THE RNAME SPITS OUT MUMBO JUMBO
         // MNAME
         extractName(&proxyPacketIndex, DnsSections, rrDataBuffer);
         std::cout << " " << rrDataBuffer;
