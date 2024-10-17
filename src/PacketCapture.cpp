@@ -92,6 +92,12 @@ void extractName(int* packetIndex, const u_char* DnsSections, char* sectionBuffe
         // packetIndex is increased by 1 at the end of the function (see below), so we only add 1 here rather than 2
         *packetIndex += 1;
     }
+    else if (DnsSections[*packetIndex] == '\0')
+    {
+        strcpy(sectionBuffer, "<Root>");
+        *packetIndex += 1;
+        return;
+    }
     else
     {
         // if the name isn't compressed, the first byte is the start of the full domain name
