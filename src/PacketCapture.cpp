@@ -6,6 +6,8 @@
 #include "Configuration.h"
 #include "PacketCapture.h"
 
+#define RECORD_BUFFER_SIZE 2000
+
 void discernRRType(ushort rrtype, char* buffer)
 {
     switch (rrtype)
@@ -196,76 +198,95 @@ void printCommonRrInformation(char* sectionBuffer, int ttl, char* classBuffer, c
 
 void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSections, char* type, char* rrDataBuffer)
 {
+    // clean the array
+    memset(rrDataBuffer, 0, RECORD_BUFFER_SIZE);
+
+    // behavior based on type
     if ((strcmp(type, "CNAME") == 0) || (strcmp(type, "NS") == 0))
     {
         // cant change the actual packetIndex as it will change at the end of the function, so use a substitute
         int proxyPacketIndex = *packetIndex;
         extractName(&proxyPacketIndex, DnsSections, rrDataBuffer);
-
-        std::cout << " " << rrDataBuffer;
     }
     else if (strcmp(type, "A") == 0)
     {
         char addressBuffer[100];
         struct in_addr ipv4 = *((in_addr*) &DnsSections[*packetIndex]);
         inet_ntop(AF_INET, &ipv4, addressBuffer, 100);
-        std::cout << " " << addressBuffer;
+
+        strcat(rrDataBuffer, addressBuffer);
     }
     else if (strcmp(type, "AAAA") == 0)
     {
         char addressBuffer[100];
         struct in6_addr ipv6 = *((in6_addr*) &DnsSections[*packetIndex]);
         inet_ntop(AF_INET6, &ipv6, addressBuffer, 100);
-        std::cout << " " << addressBuffer;
+        
+        strcat(rrDataBuffer, addressBuffer);
     }
     else if (strcmp(type, "MX") == 0)
     {
         ushort priority = ntohs(*((ushort*) &DnsSections[*packetIndex]));
         int proxyPacketIndex = *packetIndex + 2;
 
-        extractName(&proxyPacketIndex, DnsSections, rrDataBuffer);
-        std::cout << " " << priority << " " << rrDataBuffer;
+        char tempBuffer[500];
+        extractName(&proxyPacketIndex, DnsSections, tempBuffer);
+
+        strcat(rrDataBuffer, std::to_string(priority).c_str());
+        strcat(rrDataBuffer, " ");
+        strcat(rrDataBuffer, tempBuffer);
     }
     else if (strcmp(type, "SOA") == 0)
     {
         int proxyPacketIndex = *packetIndex;
+        char mnameBuffer[1000];
+        char rnameBuffer[1000];
         
         // MNAME
-        extractName(&proxyPacketIndex, DnsSections, rrDataBuffer);
-        std::cout << " " << rrDataBuffer;
+        extractName(&proxyPacketIndex, DnsSections, mnameBuffer);
 
         // RNAME
-        extractName(&proxyPacketIndex, DnsSections, rrDataBuffer);
-        std::cout << " " << rrDataBuffer;
+        extractName(&proxyPacketIndex, DnsSections, rnameBuffer);
 
         // SERIAL
         unsigned int serial = ntohl(*((int*) &DnsSections[proxyPacketIndex]));
         proxyPacketIndex += 4;
-        std::cout << " " << std::to_string(serial);
 
         // REFRESH
         int refresh = ntohl(*((int*) &DnsSections[proxyPacketIndex]));
         proxyPacketIndex += 4;
-        std::cout << " " << std::to_string(refresh);
 
         // RETRY
         int retry = ntohl(*((int*) &DnsSections[proxyPacketIndex]));
         proxyPacketIndex += 4;
-        std::cout << " " << std::to_string(retry);
 
         // EXPIRE
         int expire = ntohl(*((int*) &DnsSections[proxyPacketIndex]));
         proxyPacketIndex += 4;
-        std::cout << " " << std::to_string(expire);
 
         // MINIMUM
         unsigned int minimum = ntohl(*((int*) &DnsSections[proxyPacketIndex]));
         proxyPacketIndex += 4;
-        std::cout << " " << std::to_string(minimum);
+
+        // put data to output buffer
+        strcat(rrDataBuffer, mnameBuffer);
+        strcat(rrDataBuffer, " ");
+        strcat(rrDataBuffer, rnameBuffer);
+        strcat(rrDataBuffer, " ");
+        strcat(rrDataBuffer, std::to_string(serial).c_str());
+        strcat(rrDataBuffer, " ");
+        strcat(rrDataBuffer, std::to_string(refresh).c_str());
+        strcat(rrDataBuffer, " ");
+        strcat(rrDataBuffer, std::to_string(retry).c_str());
+        strcat(rrDataBuffer, " ");
+        strcat(rrDataBuffer, std::to_string(expire).c_str());
+        strcat(rrDataBuffer, " ");
+        strcat(rrDataBuffer, std::to_string(minimum).c_str());
     }
     else if (strcmp(type, "SRV") == 0)
     {
         int proxyPacketIndex = *packetIndex;
+        char tempBuffer[500];
 
         ushort priority = ntohs(*((ushort*) &DnsSections[proxyPacketIndex]));
         proxyPacketIndex += 2;
@@ -276,12 +297,23 @@ void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSection
         ushort port = ntohs(*((ushort*) &DnsSections[proxyPacketIndex]));
         proxyPacketIndex += 2;
 
-        extractName(&proxyPacketIndex, DnsSections, rrDataBuffer);
+        extractName(&proxyPacketIndex, DnsSections, tempBuffer);
         
-        std::cout << " " << priority << " " << weight << " " << port << " " << rrDataBuffer;
+        strcat(rrDataBuffer, std::to_string(priority).c_str());
+        strcat(rrDataBuffer, " ");
+        strcat(rrDataBuffer, std::to_string(weight).c_str());
+        strcat(rrDataBuffer, " ");
+        strcat(rrDataBuffer, std::to_string(port).c_str());
+        strcat(rrDataBuffer, " ");
+        strcat(rrDataBuffer, tempBuffer);
     }
 
     *packetIndex += dataLength;
+}
+
+void printRrData(char* rrDataBuffer)
+{
+    std::cout << " " << rrDataBuffer;
 }
 
 void InterruptHandler(int sig)
@@ -382,9 +414,9 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
 
     // DNS payload and length
     const u_char *DnsPayload = &packet[ethHeaderLength + ipHeaderLength + udpHeaderLength];
-    ushort DnsPayloadLength = (ushort) (((packet[ethHeaderLength + ipHeaderLength + 4] << 8)
-        + packet[ethHeaderLength + ipHeaderLength + 5]) 
-        - udpHeaderLength);
+    // ushort DnsPayloadLength = (ushort) (((packet[ethHeaderLength + ipHeaderLength + 4] << 8)
+    //     + packet[ethHeaderLength + ipHeaderLength + 5]) 
+    //     - udpHeaderLength);
 
     struct DnsHeader
     {
@@ -400,7 +432,7 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
 
     // question, answer, ... sections
     const u_char *DnsSections = &DnsPayload[12];
-    ushort DnsSectionsLength = DnsPayloadLength - 12;
+    // ushort DnsSectionsLength = DnsPayloadLength - 12;
 
     // convert byte order
     dnsHeader->transactionId = ntohs(dnsHeader->transactionId);
@@ -429,7 +461,15 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
     char typeQR = ((dnsHeader->flags & 0b1000000000000000) >> 15) ? 'R' : 'Q';
 
     // output
-    if (configuration->verbose)
+    if (!configuration->verbose)
+    {
+        std::cout << datetimeOutput << " " << srcAddressBuffer << " -> " << dstAddressBuffer 
+        << " (" << typeQR << " " 
+        << dnsHeader->numOfQuestions << "/" << dnsHeader->numOfAnswers << "/" 
+        << dnsHeader->numOfAuthorityRRs << "/" << dnsHeader->numOfAdditionalRRs << ")" 
+        << std::endl;
+    }
+    else
     {
         std::cout << "Timestamp: " << datetimeOutput << std::endl;
         std::cout << "SrcIP: " << srcAddressBuffer << std::endl;
@@ -447,93 +487,122 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
             << "AD=" << ((dnsHeader->flags & 0b0000000000100000) >> 5) << ", " 
             << "CD=" << ((dnsHeader->flags & 0b0000000000010000) >> 4) << ", " 
             << "RCODE=" << (dnsHeader->flags & 0b0000000000001111)
-            << std::endl
-            << std::endl
-            << "[Question Section]" << std::endl;
+            << std::endl;
+    }
 
-        // buffer for answers, ...
-        char sectionBuffer[1000];
-        char rrDataBuffer[300];
-        char typeBuffer[10];
-        char classBuffer[10];
-        int ttl = 0;
-        ushort dataLength = 0;
-        int packetIndex = 0;
+    // === divider ============================================================================
 
-        for (int questionNum = 0; questionNum < dnsHeader->numOfQuestions; questionNum++)
+    // buffers for questions, answers, ...
+    char sectionBuffer[1000];
+    char rrDataBuffer[RECORD_BUFFER_SIZE];
+    char typeBuffer[10];
+    char classBuffer[10];
+    int ttl = 0;
+    ushort dataLength = 0;
+    int packetIndex = 0;
+
+    // QUESTIONS
+    if (configuration->verbose)
+    {
+        std::cout << std::endl;
+        std::cout << "[Question Section]" << std::endl;
+    }
+
+    for (int questionNum = 0; questionNum < dnsHeader->numOfQuestions; questionNum++)
+    {
+        extractName(&packetIndex, DnsSections, sectionBuffer);
+        extractType(&packetIndex, DnsSections, typeBuffer);
+        extractClass(&packetIndex, DnsSections, classBuffer);
+
+        if (configuration->verbose)
         {
-            extractName(&packetIndex, DnsSections, sectionBuffer);
-            extractType(&packetIndex, DnsSections, typeBuffer);
-            extractClass(&packetIndex, DnsSections, classBuffer);
-
             // print the name, type and class
             std::cout << sectionBuffer 
                 << " " << classBuffer
                 << " " << typeBuffer 
                 << std::endl;
         }
+    }
 
-        // === divider ============================================================================
+    // === divider ============================================================================
+    
+    // ANSWERS
+    if (configuration->verbose)
+    {
         std::cout << std::endl;
-        
         std::cout << "[Answer Section]" << std::endl;
-        for (int answerNum = 0; answerNum < dnsHeader->numOfAnswers; answerNum++)
-        {
-            extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength);
-            printCommonRrInformation(sectionBuffer, ttl, classBuffer, typeBuffer);
+    }
+    
+    for (int answerNum = 0; answerNum < dnsHeader->numOfAnswers; answerNum++)
+    {
+        extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength);
+        processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer);
 
-            processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer);
-            
+        if (configuration->verbose)
+        {
+            printCommonRrInformation(sectionBuffer, ttl, classBuffer, typeBuffer);
+            printRrData(rrDataBuffer);
             std::cout << std::endl;
         }
-        
-        // === divider ============================================================================
+    }
+    
+    // === divider ============================================================================
+    
+    // AUTHORITY
+    if (configuration->verbose)
+    {
         std::cout << std::endl;
-        
         std::cout << "[Authority Section]" << std::endl;
-        for (int authorityNum = 0; authorityNum < dnsHeader->numOfAuthorityRRs; authorityNum++)
-        {
-            extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength);
-            printCommonRrInformation(sectionBuffer, ttl, classBuffer, typeBuffer);
+    }
 
-            processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer);
-            
+    for (int authorityNum = 0; authorityNum < dnsHeader->numOfAuthorityRRs; authorityNum++)
+    {
+        extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength);
+        processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer);
+        
+        if (configuration->verbose)
+        {
+            printCommonRrInformation(sectionBuffer, ttl, classBuffer, typeBuffer);
+            printRrData(rrDataBuffer);
             std::cout << std::endl;
         }
+    }
 
-        // === divider ============================================================================
+    // === divider ============================================================================
+    
+    // ADDITIONAL
+    if (configuration->verbose)
+    {
         std::cout << std::endl;
-        
         std::cout<< "[Additional Section]" << std::endl;
-        for (int additionalNum = 0; additionalNum < dnsHeader->numOfAdditionalRRs; additionalNum++)
+    }
+
+    for (int additionalNum = 0; additionalNum < dnsHeader->numOfAdditionalRRs; additionalNum++)
+    {
+        // OPT type can be ignored as per the assignment (OPT breaks the record format and would require a new parsing function)
+
+        // we do not want to update the packetIndex yet in case the record is OPT so we use a substitute
+        int proxyPacketIndex = packetIndex;
+        extractName(&proxyPacketIndex, DnsSections, sectionBuffer);
+        extractType(&proxyPacketIndex, DnsSections, typeBuffer);
+
+        if (strcmp(typeBuffer, "OPT") != 0)
         {
-            // OPT type can be ignored as per the assignment (OPT breaks the record format and would require a new parsing function)
-
-            // we do not want to update the packetIndex yet in case the record is OPT so we use a proxy
-            int proxyPacketIndex = packetIndex;
-            extractName(&proxyPacketIndex, DnsSections, sectionBuffer);
-            extractType(&proxyPacketIndex, DnsSections, typeBuffer);
-
-            if (strcmp(typeBuffer, "OPT") != 0)
+            extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength);
+            processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer);
+            
+            if (configuration->verbose)
             {
-                extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength);
                 printCommonRrInformation(sectionBuffer, ttl, classBuffer, typeBuffer);
-
-                processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer);
-                
-                std::cout << std::endl;   
+                printRrData(rrDataBuffer);
+                std::cout << std::endl;
             }
         }
-
-        std::cout << "====================" << std::endl;
     }
-    else
+
+    if (configuration->verbose)
     {
-        std::cout << datetimeOutput << " " << srcAddressBuffer << " -> " << dstAddressBuffer 
-        << " (" << typeQR << " " 
-        << dnsHeader->numOfQuestions << "/" << dnsHeader->numOfAnswers << "/" 
-        << dnsHeader->numOfAuthorityRRs << "/" << dnsHeader->numOfAdditionalRRs << ")" 
-        << std::endl;
+        std::cout << "====================" << std::endl;
     }
 
     return;
