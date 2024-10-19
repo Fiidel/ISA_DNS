@@ -56,6 +56,9 @@ int CLParser::ParseClArgs(int argc, char** argv, Configuration *configuration)
         return 1;
     }
 
+    // init logger if domain name file is specified
+    configuration->initLogger();
+
     // finished without errors
     return 0;
 }

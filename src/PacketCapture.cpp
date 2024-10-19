@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include "Configuration.h"
 #include "PacketCapture.h"
+#include "DomainNameLogger.h"
 
 #define RECORD_BUFFER_SIZE 2000
 
@@ -72,7 +73,7 @@ ushort extractNameOffset(const u_char* DnsSections, int packetIndex)
     return nameOffset;
 }
 
-void extractName(int* packetIndex, const u_char* DnsSections, char* sectionBuffer)
+void extractName(int* packetIndex, const u_char* DnsSections, char* sectionBuffer, DomainNameLogger* logger)
 {
     int bufferIndex = 0;
     int domainNameIndex = 0;
@@ -146,6 +147,12 @@ void extractName(int* packetIndex, const u_char* DnsSections, char* sectionBuffe
 
     // set the last byte of the domain name buffer to a null byte
     sectionBuffer[bufferIndex] = '\0';
+
+    // if the logger is defined, log the domain name
+    if (logger != NULL)
+    {
+        logger->logDomainName(sectionBuffer);
+    }
     
     // you also need to skip the terminating null byte that denotes the end of the domain name section
     // in the packet so that upon return from this function, the packetIndex can be used correctly
@@ -178,9 +185,10 @@ void extractDataLength(ushort* dataLength, int* packetIndex, const u_char* DnsSe
     *packetIndex += 2;
 }
 
-void extractCommonRrInformation(int* packetIndex, const u_char* DnsSections, char* sectionBuffer, char* typeBuffer, char* classBuffer, int* ttl, ushort* dataLength)
+void extractCommonRrInformation(int* packetIndex, const u_char* DnsSections, char* sectionBuffer, char* typeBuffer, char* classBuffer, int* ttl, 
+    ushort* dataLength, DomainNameLogger* logger)
 {
-    extractName(packetIndex, DnsSections, sectionBuffer);
+    extractName(packetIndex, DnsSections, sectionBuffer, logger);
     extractType(packetIndex, DnsSections, typeBuffer);
     extractClass(packetIndex, DnsSections, classBuffer);
     extractTtl(ttl, packetIndex, DnsSections);
@@ -196,7 +204,7 @@ void printCommonRrInformation(char* sectionBuffer, int ttl, char* classBuffer, c
         << " " << typeBuffer;
 }
 
-void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSections, char* type, char* rrDataBuffer)
+void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSections, char* type, char* rrDataBuffer, DomainNameLogger* logger)
 {
     // clean the array
     memset(rrDataBuffer, 0, RECORD_BUFFER_SIZE);
@@ -206,7 +214,7 @@ void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSection
     {
         // cant change the actual packetIndex as it will change at the end of the function, so use a substitute
         int proxyPacketIndex = *packetIndex;
-        extractName(&proxyPacketIndex, DnsSections, rrDataBuffer);
+        extractName(&proxyPacketIndex, DnsSections, rrDataBuffer, logger);
     }
     else if (strcmp(type, "A") == 0)
     {
@@ -230,7 +238,7 @@ void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSection
         int proxyPacketIndex = *packetIndex + 2;
 
         char tempBuffer[500];
-        extractName(&proxyPacketIndex, DnsSections, tempBuffer);
+        extractName(&proxyPacketIndex, DnsSections, tempBuffer, logger);
 
         strcat(rrDataBuffer, std::to_string(priority).c_str());
         strcat(rrDataBuffer, " ");
@@ -243,10 +251,10 @@ void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSection
         char rnameBuffer[1000];
         
         // MNAME
-        extractName(&proxyPacketIndex, DnsSections, mnameBuffer);
+        extractName(&proxyPacketIndex, DnsSections, mnameBuffer, logger);
 
         // RNAME
-        extractName(&proxyPacketIndex, DnsSections, rnameBuffer);
+        extractName(&proxyPacketIndex, DnsSections, rnameBuffer, logger);
 
         // SERIAL
         unsigned int serial = ntohl(*((int*) &DnsSections[proxyPacketIndex]));
@@ -297,7 +305,7 @@ void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSection
         ushort port = ntohs(*((ushort*) &DnsSections[proxyPacketIndex]));
         proxyPacketIndex += 2;
 
-        extractName(&proxyPacketIndex, DnsSections, tempBuffer);
+        extractName(&proxyPacketIndex, DnsSections, tempBuffer, logger);
         
         strcat(rrDataBuffer, std::to_string(priority).c_str());
         strcat(rrDataBuffer, " ");
@@ -333,6 +341,9 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
 {
     // recast the configuration from userArg back to Configuration*
     Configuration* configuration = (Configuration*) userArg;
+
+    // instantiate logger or set to null
+    DomainNameLogger* logger = configuration->logger;
 
     // set up IP address variables
     struct in_addr* ipv4Src = NULL;
@@ -510,7 +521,7 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
 
     for (int questionNum = 0; questionNum < dnsHeader->numOfQuestions; questionNum++)
     {
-        extractName(&packetIndex, DnsSections, sectionBuffer);
+        extractName(&packetIndex, DnsSections, sectionBuffer, logger);
         extractType(&packetIndex, DnsSections, typeBuffer);
         extractClass(&packetIndex, DnsSections, classBuffer);
 
@@ -535,8 +546,8 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
     
     for (int answerNum = 0; answerNum < dnsHeader->numOfAnswers; answerNum++)
     {
-        extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength);
-        processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer);
+        extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength, logger);
+        processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer, logger);
 
         if (configuration->verbose)
         {
@@ -557,8 +568,8 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
 
     for (int authorityNum = 0; authorityNum < dnsHeader->numOfAuthorityRRs; authorityNum++)
     {
-        extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength);
-        processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer);
+        extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength, logger);
+        processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer, logger);
         
         if (configuration->verbose)
         {
@@ -583,13 +594,13 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
 
         // we do not want to update the packetIndex yet in case the record is OPT so we use a substitute
         int proxyPacketIndex = packetIndex;
-        extractName(&proxyPacketIndex, DnsSections, sectionBuffer);
+        extractName(&proxyPacketIndex, DnsSections, sectionBuffer, NULL); // purely so that the proxyPacketIndex increases by the domain name length and type can be accessed
         extractType(&proxyPacketIndex, DnsSections, typeBuffer);
 
         if (strcmp(typeBuffer, "OPT") != 0)
         {
-            extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength);
-            processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer);
+            extractCommonRrInformation(&packetIndex, DnsSections, sectionBuffer, typeBuffer, classBuffer, &ttl, &dataLength, logger);
+            processRrData(&packetIndex, dataLength, DnsSections, typeBuffer, rrDataBuffer, logger);
             
             if (configuration->verbose)
             {

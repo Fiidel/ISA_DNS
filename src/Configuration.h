@@ -2,15 +2,21 @@
 #define CONFIGURATION_H
 
 #include <iostream>
+#include "DomainNameLogger.h"
 
 class Configuration
 {
 public:
-    static bool verbose;
-    static char* interface;
-    static char* pcapFile;
-    static char* domainsFile;
-    static char* translationsFile;
+    bool verbose;
+    char* interface;
+    char* pcapFile;
+    char* domainsFile;
+    char* translationsFile;
+    DomainNameLogger* logger;
+
+    Configuration();
+    ~Configuration();
+    void initLogger();
 };
 
 #endif
