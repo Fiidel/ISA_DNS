@@ -1,7 +1,7 @@
 #ifndef HASHTABLE_H
 #define HASHTABLE_H
 
-#define HASH_T_CAPACITY 4
+#define HASH_T_CAPACITY 64
 #define DOMAIN_BUFFER_SIZE 256
 
 typedef struct domainRecord
