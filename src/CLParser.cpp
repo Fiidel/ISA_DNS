@@ -14,14 +14,14 @@ int CLParser::ParseClArgs(int argc, char** argv, Configuration *configuration)
     }
 
     // parsing arguments
-    while ((opt = getopt(argc, argv, "i:r:vd:t:h")) != -1)
+    while ((opt = getopt(argc, argv, "i:p:vd:t:h")) != -1)
     {
         switch (opt)
         {
             case 'i':
                 configuration->interface = optarg;
                 break;
-            case 'r':
+            case 'p':
                 configuration->pcapFile = optarg;
                 break;
             case 'v':
