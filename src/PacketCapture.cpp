@@ -145,8 +145,8 @@ void extractName(int* packetIndex, const u_char* DnsSections, char* nameBuffer, 
         bufferIndex++;
     }
 
-    // set the last byte of the domain name buffer to a null byte
-    nameBuffer[bufferIndex] = '\0';
+    // set the last byte of the domain name buffer to a null byte (replaces the end period, hence --bufferIndex)
+    nameBuffer[--bufferIndex] = '\0';
 
     // if the domainLogger is defined, log the domain name
     if (domainLogger != NULL)
@@ -198,7 +198,7 @@ void extractCommonRrInformation(int* packetIndex, const u_char* DnsSections, cha
 void printCommonRrInformation(char* nameBuffer, int ttl, char* classBuffer, char* typeBuffer)
 {
     // print the name, ttl, class and type
-    std::cout << nameBuffer 
+    std::cout << nameBuffer << "."
         << " " << std::to_string(ttl)
         << " " << classBuffer
         << " " << typeBuffer;
@@ -529,7 +529,7 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
         if (configuration->verbose)
         {
             // print the name, type and class
-            std::cout << nameBuffer 
+            std::cout << nameBuffer << "."
                 << " " << classBuffer
                 << " " << typeBuffer 
                 << std::endl;
