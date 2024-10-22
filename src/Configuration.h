@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "DomainNameLogger.h"
+#include "TranslationLogger.h"
 
 class Configuration
 {
@@ -12,11 +13,12 @@ public:
     char* pcapFile;
     char* domainsFile;
     char* translationsFile;
-    DomainNameLogger* logger;
+    DomainNameLogger* domainLogger;
+    TranslationLogger* translationLogger;
 
     Configuration();
     ~Configuration();
-    void initLogger();
+    void initLoggers();
 };
 
 #endif

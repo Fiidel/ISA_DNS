@@ -5,8 +5,8 @@ EXECUTABLE = dns-monitor
 
 all: clean $(EXECUTABLE)
 
-$(EXECUTABLE): main.o CLParser.o Configuration.o PacketCapture.o DomainNameLogger.o hashTable.o
-	$(CXX) $(CXXFLAGS) -o $(EXECUTABLE) main.o CLParser.o Configuration.o PacketCapture.o DomainNameLogger.o hashTable.o -lpcap
+$(EXECUTABLE): main.o CLParser.o Configuration.o PacketCapture.o DomainNameLogger.o TranslationLogger.o hashTable.o
+	$(CXX) $(CXXFLAGS) -o $(EXECUTABLE) main.o CLParser.o Configuration.o PacketCapture.o DomainNameLogger.o TranslationLogger.o hashTable.o -lpcap
 
 main.o:
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/main.cpp
@@ -22,6 +22,9 @@ PacketCapture.o:
 
 DomainNameLogger.o:
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/DomainNameLogger.cpp
+
+TranslationLogger.o:
+	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/TranslationLogger.cpp
 
 hashTable.o:
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/hashTable.cpp

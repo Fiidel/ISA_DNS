@@ -17,12 +17,12 @@ DomainNameLogger::~DomainNameLogger()
 
 void DomainNameLogger::logDomainName(char* domainName)
 {
-    if (!hashTableFind(this->hashTable, domainName))
+    if (!hashTableDomainNameFind(this->hashTable, domainName))
     {
         std::ofstream domainFile(this->domainFilename, std::ios::app);
         domainFile << domainName << std::endl;
         domainFile.close();
 
-        hashTableAdd(this->hashTable, domainName);
+        hashTableAddDomainName(this->hashTable, domainName);
     }
 }

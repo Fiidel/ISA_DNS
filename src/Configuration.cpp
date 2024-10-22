@@ -11,20 +11,34 @@ Configuration::Configuration()
 
 Configuration::~Configuration()
 {
-    if (logger)
+    if (domainLogger)
     {
-        delete logger;
+        delete domainLogger;
+    }
+
+    if (translationLogger)
+    {
+        delete translationLogger;
     }
 }
 
-void Configuration::initLogger()
+void Configuration::initLoggers()
 {
     if (domainsFile == NULL)
     {
-        logger = NULL;
+        domainLogger = NULL;
     }
     else
     {
-        logger = new DomainNameLogger(domainsFile);
+        domainLogger = new DomainNameLogger(domainsFile);
+    }
+
+    if (translationsFile == NULL)
+    {
+        translationLogger = NULL;
+    }
+    else
+    {
+        translationLogger = new TranslationLogger(translationsFile);
     }
 }
