@@ -9,6 +9,32 @@
 
 #define RECORD_BUFFER_SIZE 2000
 
+// global configuration reference for cleanup on interrupt
+Configuration* configGlobal = NULL;
+
+void CleanUp()
+{
+    if (configGlobal)
+    {
+        delete configGlobal;
+    }
+}
+
+void InterruptHandler(int sig)
+{
+    CleanUp();
+    exit(0);
+}
+
+PacketCapture::PacketCapture(Configuration* config)
+{
+    this->configuration = config;
+    configGlobal = this->configuration;
+    signal(SIGINT, InterruptHandler);
+    signal(SIGTERM, InterruptHandler);
+    signal(SIGQUIT, InterruptHandler);
+}
+
 void discernRRType(ushort rrtype, char* buffer)
 {
     switch (rrtype)
@@ -322,19 +348,6 @@ void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSection
 void printRrData(char* rrDataBuffer)
 {
     std::cout << " " << rrDataBuffer;
-}
-
-void InterruptHandler(int sig)
-{
-    std::cout << "Interrupt." << std::endl;
-    // TODO: clean up
-    exit(0);
-}
-
-PacketCapture::PacketCapture(Configuration* config)
-{
-    this->configuration = config;
-    signal(SIGINT, InterruptHandler);
 }
 
 void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_char *packet)
