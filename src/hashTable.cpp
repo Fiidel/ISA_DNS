@@ -55,7 +55,7 @@ bool doesRecordAddressMatch(domainRecord* record, char* address)
     return (strcmp(record->address, address) == 0);
 }
 
-bool checkAddressMatchOnIndex(domainRecord* record, char* domainName, char* address)
+bool checkAddressMatchOnIndex(domainRecord* record, char* address)
 {
     while (record != NULL)
     {
@@ -74,7 +74,7 @@ bool hashTableTranslationFind(domainRecord* hashTable, char* domainName, char* a
     
     if (hashTableDomainNameFind(hashTable, domainName))
     {
-        if (checkAddressMatchOnIndex(&hashTable[index], domainName, address))
+        if (checkAddressMatchOnIndex(&hashTable[index], address))
         {
             return true;
         }
@@ -127,7 +127,7 @@ void hashTableAddTranslation(domainRecord* hashTable, char* domainName, char* ad
     // (the address needs to be checked because the name could be resolved to a different server for stuff like facebook etc.)
     if (hashTableDomainNameFind(hashTable, domainName))
     {
-        if (checkAddressMatchOnIndex(&hashTable[index], domainName, address))
+        if (checkAddressMatchOnIndex(&hashTable[index], address))
         {
             return;
         }
