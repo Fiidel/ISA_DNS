@@ -1,3 +1,7 @@
+/* author: Adam Helešic
+*  xlogin: xheles06
+*/
+
 #include "PacketCaptureUtils.h"
 
 /// @brief Fills a buffer with the name of the record type based on its value.

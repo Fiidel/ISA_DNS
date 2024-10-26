@@ -1,3 +1,7 @@
+/* author: Adam Helešic
+*  xlogin: xheles06
+*/
+
 #ifndef TRANSLATIONLOGGER_H
 #define TRANSLATIONLOGGER_H
 

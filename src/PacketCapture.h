@@ -1,3 +1,7 @@
+/* author: Adam Helešic
+*  xlogin: xheles06
+*/
+
 #ifndef PACKETCAPTURE_H
 #define PACKETCAPTURE_H
 

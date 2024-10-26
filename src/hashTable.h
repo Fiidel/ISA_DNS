@@ -1,3 +1,7 @@
+/* author: Adam Helešic
+*  xlogin: xheles06
+*/
+
 #ifndef HASHTABLE_H
 #define HASHTABLE_H
 

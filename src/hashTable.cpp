@@ -1,3 +1,7 @@
+/* author: Adam Helešic
+*  xlogin: xheles06
+*/
+
 #include "hashTable.h"
 
 /// @brief Hash function to map domain name to a hash table index.

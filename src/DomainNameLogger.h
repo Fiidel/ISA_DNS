@@ -1,3 +1,7 @@
+/* author: Adam Helešic
+*  xlogin: xheles06
+*/
+
 #ifndef DOMAINNAMELOGGER_H
 #define DOMAINNAMELOGGER_H
 

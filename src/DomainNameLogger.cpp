@@ -1,3 +1,7 @@
+/* author: Adam Helešic
+*  xlogin: xheles06
+*/
+
 #include "DomainNameLogger.h"
 
 /// @brief DomainNameLogger constructor.

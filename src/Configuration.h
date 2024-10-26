@@ -1,3 +1,7 @@
+/* author: Adam Helešic
+*  xlogin: xheles06
+*/
+
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 

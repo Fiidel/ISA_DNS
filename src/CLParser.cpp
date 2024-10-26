@@ -1,3 +1,7 @@
+/* author: Adam Helešic
+*  xlogin: xheles06
+*/
+
 #include <iostream>
 #include <unistd.h>
 #include "CLParser.h"

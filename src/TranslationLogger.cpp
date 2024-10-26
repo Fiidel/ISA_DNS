@@ -1,3 +1,7 @@
+/* author: Adam Helešic
+*  xlogin: xheles06
+*/
+
 #include "TranslationLogger.h"
 
 /// @brief TranslationLogger constructor.
