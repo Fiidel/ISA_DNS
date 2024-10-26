@@ -1,5 +1,6 @@
 #include "Configuration.h"
 
+/// @brief Configuration constructor.
 Configuration::Configuration()
 {
     verbose = false;
@@ -9,6 +10,7 @@ Configuration::Configuration()
     translationsFile = NULL;
 }
 
+/// @brief Configuration destructor.
 Configuration::~Configuration()
 {
     if (domainLogger)
@@ -22,6 +24,9 @@ Configuration::~Configuration()
     }
 }
 
+/// @brief Constructor initializer. Creates loggers if files were specified in program arguments.
+/// Needs to be called after the program arguments have been parsed and stored in the Configuration object.
+/// Hence why it isn't a part of the Configuration constructor.
 void Configuration::initLoggers()
 {
     if (domainsFile == NULL)

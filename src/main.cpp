@@ -5,6 +5,8 @@
 #include "Configuration.h"
 #include "PacketCapture.h"
 
+/// @brief Deletes the allocated Configuration.
+/// @param configuration A Configuration object to be deleted.
 void Cleanup(Configuration* configuration)
 {
     if (configuration)
@@ -15,8 +17,11 @@ void Cleanup(Configuration* configuration)
 
 int main(int argc, char** argv)
 {
+    // instantiate command line parser and configuration
     CLParser clParser;
     Configuration* configuration = new Configuration();
+
+    // parse command line arguments and handle possible failures
     int clParserSuccess = clParser.ParseClArgs(argc, argv, configuration);
     if (clParserSuccess != 0)
     {
@@ -25,7 +30,10 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // instantiate packet capture object with the configuration
     PacketCapture packetCapture(configuration);
+
+    // open the capture/process a pcap file and handle possible failures
     int pcapSuccess = packetCapture.OpenCaptureOnInterface();
     if (pcapSuccess != 0)
     {
@@ -34,6 +42,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // clean up at the end of the program
     Cleanup(configuration);
     return 0;
 }

@@ -1,6 +1,9 @@
 #ifndef HASHTABLE_H
 #define HASHTABLE_H
 
+#include <iostream>
+#include <string.h>
+
 #define HASH_T_CAPACITY 64
 #define DOMAIN_BUFFER_SIZE 256
 #define ADDRESS_BUFFER_SIZE 100

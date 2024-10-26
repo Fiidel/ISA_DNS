@@ -1,7 +1,8 @@
-#include <iostream>
-#include <string.h>
 #include "hashTable.h"
 
+/// @brief Hash function to map domain name to a hash table index.
+/// @param domainName The domain name used for the hash function.
+/// @return An integer index for the hash table.
 int hash(char* domainName)
 {
     int sum = 0;
@@ -12,6 +13,8 @@ int hash(char* domainName)
     return sum % HASH_T_CAPACITY;
 }
 
+/// @brief Initializes the hash table up to its capacity.
+/// @return A pointer to the hash table.
 domainRecord* hashTableInit()
 {
     domainRecord* hashTable = new domainRecord[HASH_T_CAPACITY];
@@ -26,6 +29,10 @@ domainRecord* hashTableInit()
     return hashTable;
 }
 
+/// @brief Searches for a domain name in the hash table.
+/// @param hashTable The hash table to search.
+/// @param domainName The domain name to search for.
+/// @return True if the domain name is found, false otherwise.
 bool hashTableDomainNameFind(domainRecord* hashTable, char* domainName)
 {
     int index = hash(domainName);
@@ -50,11 +57,19 @@ bool hashTableDomainNameFind(domainRecord* hashTable, char* domainName)
     return false;
 }
 
+/// @brief Checks if an address of a record matches a given address.
+/// @param record The record that stored the address.
+/// @param address The address string to check.
+/// @return True if the address matches, false otherwise.
 bool doesRecordAddressMatch(domainRecord* record, char* address)
 {
     return (strcmp(record->address, address) == 0);
 }
 
+/// @brief Checks every address of the hash table linked list records.
+/// @param record The first record in the linked list.
+/// @param address The address string to check.
+/// @return True if a matching address is found, false otherwise.
 bool checkAddressMatchOnIndex(domainRecord* record, char* address)
 {
     while (record != NULL)
@@ -68,6 +83,11 @@ bool checkAddressMatchOnIndex(domainRecord* record, char* address)
     return false;
 }
 
+/// @brief Searches for a matching DNS translation in the hash table.
+/// @param hashTable The hash table to search.
+/// @param domainName The domain name of the translation.
+/// @param address The IP address of the translation.
+/// @return True if a matching translation is found, false otherwise.
 bool hashTableTranslationFind(domainRecord* hashTable, char* domainName, char* address)
 {
     int index = hash(domainName);
@@ -82,6 +102,9 @@ bool hashTableTranslationFind(domainRecord* hashTable, char* domainName, char* a
     return false;
 }
 
+/// @brief Adds a domain name to the hash table if it is not already stored.
+/// @param hashTable The hash table to add the domain name to.
+/// @param domainName The domain name to store.
 void hashTableAddDomainName(domainRecord* hashTable, char* domainName)
 {
     int index = hash(domainName);
@@ -119,6 +142,10 @@ void hashTableAddDomainName(domainRecord* hashTable, char* domainName)
     }
 }
 
+/// @brief Adds a translation to the hash table if it is not already stored.
+/// @param hashTable The hash table to add the translation to.
+/// @param domainName The domain name of the translation to store.
+/// @param address The IP address of the translation to store.
 void hashTableAddTranslation(domainRecord* hashTable, char* domainName, char* address)
 {
     int index = hash(domainName);
@@ -168,6 +195,8 @@ void hashTableAddTranslation(domainRecord* hashTable, char* domainName, char* ad
     }
 }
 
+/// @brief Deletes all linked list records.
+/// @param record The first record in the linked list.
 void deleteRecords(domainRecord* record)
 {
     if (record != NULL)
@@ -181,6 +210,8 @@ void deleteRecords(domainRecord* record)
     }
 }
 
+/// @brief Deletes all records associated with the hash table and the hash table itself.
+/// @param hashTable The hash table to delete.
 void hashTableDestroy(domainRecord* hashTable)
 {
     for (int i = 0; i < HASH_T_CAPACITY; i++)

@@ -11,6 +11,7 @@
 // global configuration reference for cleanup on interrupt
 Configuration* configGlobal = NULL;
 
+/// @brief Cleans up allocated objects.
 void CleanUp()
 {
     if (configGlobal)
@@ -19,21 +20,34 @@ void CleanUp()
     }
 }
 
+/// @brief Handles program interrupts, aborts, etc.
+/// @param sig The signal that calls the handler.
 void InterruptHandler(int sig)
 {
     CleanUp();
     exit(0);
 }
 
+/// @brief The PacketCapture constructor.
+/// @param config The Configuration of the packet capture.
 PacketCapture::PacketCapture(Configuration* config)
 {
+    // store the configuration
     this->configuration = config;
+
+    // store the configuration in the global variable for cleanup
     configGlobal = this->configuration;
+
+    // link the possible program quitting signals to the handler
     signal(SIGINT, InterruptHandler);
     signal(SIGTERM, InterruptHandler);
     signal(SIGQUIT, InterruptHandler);
 }
 
+/// @brief Processes every packet from the pcap_loop.
+/// @param userArg Possible user arguments (used to pass the Configuration).
+/// @param header The header of the packet.
+/// @param packet The whole packet.
 void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_char *packet)
 {
     // recast the configuration from userArg back to Configuration*
@@ -202,7 +216,7 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
     // === divider ============================================================================
 
     // buffers for questions, answers, ...
-    char nameBuffer[1000];
+    char nameBuffer[NAME_BUFFER_SIZE];
     char rrDataBuffer[RECORD_BUFFER_SIZE];
     char typeBuffer[10];
     char classBuffer[10];
@@ -325,6 +339,7 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
         }
     }
 
+    // end divider
     if (configuration->verbose)
     {
         std::cout << "====================" << std::endl;
@@ -333,6 +348,8 @@ void packet_handler(u_char *userArg, const struct pcap_pkthdr *header, const u_c
     return;
 }
 
+/// @brief Opens capture on the specified interface or processes the specified pcap file.
+/// @return 0 on success, 1 on failure.
 int PacketCapture::OpenCaptureOnInterface()
 {
     pcap_t* handle = NULL;

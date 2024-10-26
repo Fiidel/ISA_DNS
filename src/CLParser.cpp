@@ -2,6 +2,11 @@
 #include <unistd.h>
 #include "CLParser.h"
 
+/// @brief Parses program arguments and stores them to a Configuration object.
+/// @param argc Program argument count.
+/// @param argv Array of program arguments.
+/// @param configuration A Configuration object to store parsed arguments.
+/// @return 0 on success, 1 on failure.
 int CLParser::ParseClArgs(int argc, char** argv, Configuration *configuration)
 {
     int opt;
@@ -56,7 +61,7 @@ int CLParser::ParseClArgs(int argc, char** argv, Configuration *configuration)
         return 1;
     }
 
-    // init domainLogger if domain name file is specified
+    // init domainLogger once the configuration is done
     configuration->initLoggers();
 
     // finished without errors

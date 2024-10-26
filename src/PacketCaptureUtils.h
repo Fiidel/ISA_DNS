@@ -6,6 +6,7 @@
 #include <pcap.h>
 #include "DomainNameLogger.h"
 
+#define NAME_BUFFER_SIZE 1000
 #define RECORD_BUFFER_SIZE 2000
 
 void discernRRType(ushort rrtype, char* buffer);

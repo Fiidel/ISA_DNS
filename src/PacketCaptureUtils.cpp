@@ -1,5 +1,8 @@
 #include "PacketCaptureUtils.h"
 
+/// @brief Fills a buffer with the name of the record type based on its value.
+/// @param rrtype The record type value.
+/// @param buffer The buffer for the record type name.
 void discernRRType(ushort rrtype, char* buffer)
 {
     switch (rrtype)
@@ -34,6 +37,9 @@ void discernRRType(ushort rrtype, char* buffer)
     }
 }
 
+/// @brief Fills a buffer with the name of the record class based on its value.
+/// @param rrclass The record class value.
+/// @param buffer The buffer for the record class name.
 void discernRRClass(ushort rrclass, char* buffer)
 {
     switch (rrclass)
@@ -56,14 +62,24 @@ void discernRRClass(ushort rrclass, char* buffer)
     }
 }
 
+/// @brief Calculates the offset value (where to look for the domain name in the DNS payload) in case of compressed domain names.
+/// @param DnsSections The DNS payload without the DNS header.
+/// @param packetIndex The index of the compression byte in the DNS payload.
+/// @return The offset for the DNS payload where the domain name/the next part of the domain name can be found.
 ushort extractNameOffset(const u_char* DnsSections, int packetIndex)
 {
+    // the first 2 bits signify if the domain name is compressed
     // the last 14 bits are the offset for the dns payload where the name can be found
     ushort nameOffset = ntohs(*((ushort*) &DnsSections[packetIndex]));
     nameOffset = nameOffset & 0b0011111111111111;
     return nameOffset;
 }
 
+/// @brief Extracts the domain name from the DNS payload.
+/// @param packetIndex The index of the first byte of the domain name in the DNS payload.
+/// @param DnsSections The DNS payload without the DNS header.
+/// @param nameBuffer The buffer where the domain name will be stored.
+/// @param domainLogger The logger for logging domain names to an output file.
 void extractName(int* packetIndex, const u_char* DnsSections, char* nameBuffer, DomainNameLogger* domainLogger)
 {
     int bufferIndex = 0;
@@ -91,6 +107,7 @@ void extractName(int* packetIndex, const u_char* DnsSections, char* nameBuffer, 
     }
     else if (DnsSections[*packetIndex] == '\0')
     {
+        // root domain (empty string by definition, but printing it as <Root> for readability)
         strcpy(nameBuffer, "<Root>");
         *packetIndex += 1;
         return;
@@ -150,6 +167,10 @@ void extractName(int* packetIndex, const u_char* DnsSections, char* nameBuffer, 
     (*packetIndex)++;
 }
 
+/// @brief Extracts the record type value from the DNS payload.
+/// @param packetIndex The index of the record type in the DNS payload.
+/// @param DnsSections The DNS payload without the DNS header.
+/// @param typeBuffer The buffer where the record type will be stored.
 void extractType(int* packetIndex, const u_char* DnsSections, char* typeBuffer)
 {
     ushort rrtype = ntohs(*((ushort*) &DnsSections[*packetIndex]));
@@ -157,6 +178,10 @@ void extractType(int* packetIndex, const u_char* DnsSections, char* typeBuffer)
     *packetIndex += 2;
 }
 
+/// @brief Extracts the record class value from the DNS payload.
+/// @param packetIndex The index of the record class in the DNS payload.
+/// @param DnsSections The DNS payload without the DNS header.
+/// @param classBuffer The buffer where the record class will be stored.
 void extractClass(int* packetIndex, const u_char* DnsSections, char* classBuffer)
 {
     ushort rrclass = ntohs(*((ushort*) &DnsSections[*packetIndex]));
@@ -164,18 +189,35 @@ void extractClass(int* packetIndex, const u_char* DnsSections, char* classBuffer
     *packetIndex += 2;
 }
 
+/// @brief Extracts TTL from the DNS payload.
+/// @param ttl A pointer where the TTL will be stored.
+/// @param packetIndex The index of the TTL in the DNS payload.
+/// @param DnsSections The DNS payload without the DNS header.
 void extractTtl(int* ttl, int* packetIndex, const u_char* DnsSections)
 {
     *ttl = ntohl(*((int*) &DnsSections[*packetIndex]));
     *packetIndex += 4;
 }
 
+/// @brief Extracts the data length of a record from the DNS payload.
+/// @param dataLength A pointer where the data length will be stored.
+/// @param packetIndex The index of the data length in the DNS payload.
+/// @param DnsSections The DNS payload without the DNS header.
 void extractDataLength(ushort* dataLength, int* packetIndex, const u_char* DnsSections)
 {
     *dataLength = ntohs(*((ushort*) &DnsSections[*packetIndex]));
     *packetIndex += 2;
 }
 
+/// @brief Extracts record information common for all records.
+/// @param packetIndex The starting index of the record in the DNS payload.
+/// @param DnsSections The DNS payload without the DNS header.
+/// @param nameBuffer A buffer for the domain name.
+/// @param typeBuffer A buffer for the record type.
+/// @param classBuffer A buffer for the record class.
+/// @param ttl A pointer where the TTL will be stored.
+/// @param dataLength The length of the record data.
+/// @param domainLogger A logger to log the domain names.
 void extractCommonRrInformation(int* packetIndex, const u_char* DnsSections, char* nameBuffer, char* typeBuffer, char* classBuffer, int* ttl, 
     ushort* dataLength, DomainNameLogger* domainLogger)
 {
@@ -186,6 +228,11 @@ void extractCommonRrInformation(int* packetIndex, const u_char* DnsSections, cha
     extractDataLength(dataLength, packetIndex, DnsSections);
 }
 
+/// @brief Prints the common record information.
+/// @param nameBuffer The buffer with the domain name.
+/// @param ttl The TTL value.
+/// @param classBuffer The buffer with the record class.
+/// @param typeBuffer The buffer with the record type.
 void printCommonRrInformation(char* nameBuffer, int ttl, char* classBuffer, char* typeBuffer)
 {
     // print the name, ttl, class and type
@@ -195,6 +242,13 @@ void printCommonRrInformation(char* nameBuffer, int ttl, char* classBuffer, char
         << " " << typeBuffer;
 }
 
+/// @brief Processes a whole record.
+/// @param packetIndex The starting index of the record in the DNS payload.
+/// @param dataLength The length of the record data.
+/// @param DnsSections The DNS payload without the DNS header.
+/// @param type The type of the record.
+/// @param rrDataBuffer A buffer for the non-common data of the record.
+/// @param domainLogger A logger to log the domain names.
 void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSections, char* type, char* rrDataBuffer, DomainNameLogger* domainLogger)
 {
     // clean the array
@@ -310,6 +364,8 @@ void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSection
     *packetIndex += dataLength;
 }
 
+/// @brief Prints record data from the provided buffer.
+/// @param rrDataBuffer The buffer with the non-common record data.
 void printRrData(char* rrDataBuffer)
 {
     std::cout << " " << rrDataBuffer;
