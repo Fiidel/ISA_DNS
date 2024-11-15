@@ -303,7 +303,7 @@ void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSection
         extractName(&proxyPacketIndex, DnsSections, mnameBuffer, domainLogger);
 
         // RNAME
-        extractName(&proxyPacketIndex, DnsSections, rnameBuffer, domainLogger);
+        extractName(&proxyPacketIndex, DnsSections, rnameBuffer, NULL);
 
         // SERIAL
         unsigned int serial = ntohl(*((int*) &DnsSections[proxyPacketIndex]));
