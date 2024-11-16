@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <unistd.h>
+#include <string.h>
 #include "CLParser.h"
 
 /// @brief Parses program arguments and stores them to a Configuration object.
@@ -63,6 +64,35 @@ int CLParser::ParseClArgs(int argc, char** argv, Configuration *configuration)
     {
         std::cerr << "Please specify either an interface or a pcap file." << std::endl;
         return 1;
+    }
+
+    // check if the specified file for pcap is .pcap
+    if (configuration->pcapFile != NULL)
+    {
+        // first check length - otherwise could lead to an out of range exception
+        if (strlen(configuration->pcapFile) <= 5)
+        {
+            std::cerr << "The specified pcap file doesn't have the .pcap extension." << std::endl;
+            return 1;
+        }
+
+        // check if the last 5 characters are .pcap
+        std::string pcapFile(configuration->pcapFile); // substr requires type string
+        if (pcapFile.substr(pcapFile.length() - 5, pcapFile.length()) != ".pcap")
+        {
+            std::cerr << "The specified pcap file doesn't have the .pcap extension." << std::endl;
+            return 1;
+        }
+    }
+
+    // check if the .pcap file exists
+    if (configuration->pcapFile != NULL)
+    {
+        if (access(configuration->pcapFile, F_OK) != 0)
+        {
+            std::cerr << "The specified pcap file was not found." << std::endl;
+            return 1;
+        }
     }
 
     // init domainLogger once the configuration is done
