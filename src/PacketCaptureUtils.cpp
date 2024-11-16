@@ -111,8 +111,8 @@ void extractName(int* packetIndex, const u_char* DnsSections, char* nameBuffer, 
     }
     else if (DnsSections[*packetIndex] == '\0')
     {
-        // root domain (empty string by definition, but printing it as <Root> for readability)
-        strcpy(nameBuffer, "<Root>");
+        // root domain (empty string by definition)
+        strcpy(nameBuffer, "");
         *packetIndex += 1;
         return;
     }
