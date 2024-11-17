@@ -1,0 +1,96 @@
+# dns-monitor
+
+A console application for the monitoring of DNS communication on a network interface or from a `.pcap` file.
+
+## Description
+
+The main aim of this application is to monitor DNS communication on a given interface or to parse a `.pcap` file and print the communication to the console. The application also provides the option to write all the domain names and or the domain name to IP translations to a file output.
+
+### Attention
+
+Records that are not of type `A`, `AAAA`, `NS`, `MX`, `SOA`, `CNAME`, or `SRV` are ignored in the resource records sections of verbose output.
+
+
+## Usage
+
+```
+./dns-monitor (-i <interface> | -p <pcapfile>) [-v] [-d <domainsfile>] [-t <translationsfile>]
+```
+
+Arguments:
+- `-i <interface>` - the name of the interface to listen on, or
+- `-p <pcapfile>` - the name of the `.pcap` file to parse;
+- `-v` - "verbose" mode: complete information output of the DNS messages;
+- `-d <domainsfile>` - the name of the domain names file;
+- `-t <translationsfile>` - the name of the domain name to IP address translations file.
+
+### Examples
+
+```
+./dns-monitor -i eth0
+2024-09-17 14:42:10 192.168.1.5 -> 8.8.8.8 (Q 1/0/0/0)
+2024-09-17 14:42:11 8.8.8.8 -> 192.168.1.5 (R 1/1/2/2)
+```
+
+```
+./dns-monitor -i eth0 -v
+Timestamp: 2024-09-17 14:42:10
+SrcIP: 192.168.1.5
+DstIP: 8.8.8.8
+SrcPort: UDP/54321
+DstPort: UDP/53
+Identifier: 0xA1B2
+Flags: QR=0, OPCODE=0, AA=0, TC=0, RD=1, RA=0, AD=0, CD=0, RCODE=0
+
+[Question Section]
+google.com. IN A.
+====================
+
+Timestamp: 2024-09-17 14:42:11
+SrcIP: 8.8.8.8
+DstIP: 192.168.1.5
+SrcPort: UDP/53
+DstPort: UDP/54321
+Identifier: 0xA1B2
+Flags: QR=1, OPCODE=0, AA=1, TC=0, RD=1, RA=1, AD=0, CD=0, RCODE=0
+
+[Question Section]
+google.com. IN A
+
+[Answer Section]
+google.com. 300 IN A 142.250.183.142
+
+[Authority Section]
+google.com. 86400 IN NS ns1.google.com.
+google.com. 86400 IN NS ns2.google.com.
+
+[Additional Section]
+ns1.google.com. 86400 IN A 216.239.32.10
+ns2.google.com. 86400 IN A 216.239.34.10
+```
+
+
+## Submission Information
+
+### Authors
+
+Adam Helešic (xheles06)
+
+### Date
+
+17th November 2024.
+
+### List of Submitted Files
+- Makefile
+- README
+- manual.pdf
+- src/CLParser.cpp, src/CLParser.h
+- src/Configuration.cpp, src/Configuration.h
+- src/DomainNameLogger.cpp, src/DomainNameLogger.h
+- src/hashTable.cpp, src/hashTable.h
+- src/main.cpp
+- src/PacketCapture.cpp, src/PacketCapture.h
+- src/PacketCaptureUtils.cpp, src/PacketCaptureUtils.h
+- src/TranslationLogger.cpp, src/TranslationLogger.h
+
+
