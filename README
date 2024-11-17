@@ -81,16 +81,15 @@ Adam Helešic (xheles06)
 17th November 2024.
 
 ### List of Submitted Files
-- Makefile
-- README
-- manual.pdf
-- src/CLParser.cpp, src/CLParser.h
-- src/Configuration.cpp, src/Configuration.h
-- src/DomainNameLogger.cpp, src/DomainNameLogger.h
-- src/hashTable.cpp, src/hashTable.h
-- src/main.cpp
-- src/PacketCapture.cpp, src/PacketCapture.h
-- src/PacketCaptureUtils.cpp, src/PacketCaptureUtils.h
-- src/TranslationLogger.cpp, src/TranslationLogger.h
-
+- `Makefile`
+- `README`
+- `manual.pdf`
+- `src/CLParser.cpp`, `src/CLParser.h`
+- `src/Configuration.cpp`, `src/Configuration.h`
+- `src/DomainNameLogger.cpp`, `src/DomainNameLogger.h`
+- `src/hashTable.cpp`, `src/hashTable.h`
+- `src/main.cpp`
+- `src/PacketCapture.cpp`, `src/PacketCapture.h`
+- `src/PacketCaptureUtils.cpp`, `src/PacketCaptureUtils.h`
+- `src/TranslationLogger.cpp`, `src/TranslationLogger.h`
 
