@@ -15,12 +15,26 @@
 // global configuration reference for cleanup on interrupt
 Configuration* configGlobal = NULL;
 
+// global packet capture variables for cleanup
+pcap_t* handleGlobal = NULL;
+bpf_program* filterGlobal = NULL;
+
 /// @brief Cleans up allocated objects.
 void CleanUp()
 {
     if (configGlobal)
     {
         delete configGlobal;
+    }
+
+    if (handleGlobal)
+    {
+        pcap_close(handleGlobal);
+    }
+
+    if (filterGlobal)
+    {
+        pcap_freecode(filterGlobal);
     }
 }
 
@@ -404,6 +418,8 @@ int PacketCapture::OpenCaptureOnInterface()
             return 1;
         }
 
+        handleGlobal = handle;
+
         pcap_freealldevs(devices);
     }
 
@@ -420,15 +436,19 @@ int PacketCapture::OpenCaptureOnInterface()
             std::cerr << errbuf << std::endl;
             return 1;
         }
+
+        handleGlobal = handle;
     }
 
     // Set filter.
     bpf_program filter;
     int compileSuccess = pcap_compile(handle, &filter, "udp port 53", 0, PCAP_NETMASK_UNKNOWN);
+    filterGlobal = &filter;
     if (compileSuccess != 0)
     {
         std::cerr << "Error compiling filter." << std::endl;
         std::cerr << pcap_geterr(handle) << std::endl;
+        pcap_freecode(&filter);
         pcap_close(handle);
         return 1;
     }
@@ -438,6 +458,7 @@ int PacketCapture::OpenCaptureOnInterface()
     {
         std::cerr << "Error setting filter." << std::endl;
         std::cerr << pcap_geterr(handle) << std::endl;
+        pcap_freecode(&filter);
         pcap_close(handle);
         return 1;
     }
@@ -446,6 +467,7 @@ int PacketCapture::OpenCaptureOnInterface()
     pcap_loop(handle, -1, packet_handler, (u_char*) this->configuration);
 
     // Cleanup.
+    pcap_freecode(&filter);
     pcap_close(handle);
 
     return 0;
