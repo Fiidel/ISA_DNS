@@ -11,7 +11,9 @@
 #include "DomainNameLogger.h"
 
 #define NAME_BUFFER_SIZE 1000
-#define RECORD_BUFFER_SIZE 2000
+#define RECORD_BUFFER_SIZE 3000
+#define RR_ADDRESS_BUFFER_SIZE 100
+#define RR_MNAME_RNAME_BUFFER_SIZE 1000
 
 void discernRRType(ushort rrtype, char* buffer);
 void discernRRClass(ushort rrclass, char* buffer);

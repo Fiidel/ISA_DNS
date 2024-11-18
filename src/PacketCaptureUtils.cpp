@@ -267,17 +267,17 @@ void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSection
     }
     else if (strcmp(type, "A") == 0)
     {
-        char addressBuffer[100];
+        char addressBuffer[RR_ADDRESS_BUFFER_SIZE];
         struct in_addr ipv4 = *((in_addr*) &DnsSections[*packetIndex]);
-        inet_ntop(AF_INET, &ipv4, addressBuffer, 100);
+        inet_ntop(AF_INET, &ipv4, addressBuffer, RR_ADDRESS_BUFFER_SIZE);
 
         strcat(rrDataBuffer, addressBuffer);
     }
     else if (strcmp(type, "AAAA") == 0)
     {
-        char addressBuffer[100];
+        char addressBuffer[RR_ADDRESS_BUFFER_SIZE];
         struct in6_addr ipv6 = *((in6_addr*) &DnsSections[*packetIndex]);
-        inet_ntop(AF_INET6, &ipv6, addressBuffer, 100);
+        inet_ntop(AF_INET6, &ipv6, addressBuffer, RR_ADDRESS_BUFFER_SIZE);
         
         strcat(rrDataBuffer, addressBuffer);
     }
@@ -296,8 +296,10 @@ void processRrData(int* packetIndex, ushort dataLength, const u_char* DnsSection
     else if (strcmp(type, "SOA") == 0)
     {
         int proxyPacketIndex = *packetIndex;
-        char mnameBuffer[1000];
-        char rnameBuffer[1000];
+        char mnameBuffer[RR_MNAME_RNAME_BUFFER_SIZE];
+        memset(mnameBuffer, 0, RR_MNAME_RNAME_BUFFER_SIZE);
+        char rnameBuffer[RR_MNAME_RNAME_BUFFER_SIZE];
+        memset(rnameBuffer, 0, RR_MNAME_RNAME_BUFFER_SIZE);
         
         // MNAME
         extractName(&proxyPacketIndex, DnsSections, mnameBuffer, domainLogger);

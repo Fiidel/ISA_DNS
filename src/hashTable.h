@@ -9,7 +9,7 @@
 #include <string.h>
 
 #define HASH_T_CAPACITY 64
-#define DOMAIN_BUFFER_SIZE 256
+#define DOMAIN_BUFFER_SIZE 1000
 #define ADDRESS_BUFFER_SIZE 100
 
 typedef struct domainRecord
