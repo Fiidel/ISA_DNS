@@ -44,8 +44,15 @@ int CLParser::ParseClArgs(int argc, char** argv, Configuration *configuration)
                 configuration->translationsFile = optarg;
                 break;
             case 'h':
-                std::cout << "Usage: ./dns-monitor (-i <interface> | -p <pcapfile>) [-v] [-d <domainsfile>] [-t <translationsfile>]" << std::endl;
-                return 0;
+                std::cout
+                << "dns-monitor - an application for monitoring DNS communication." << std::endl
+                << "Usage: ./dns-monitor (-i <interface> | -p <pcapfile>) [-v] [-d <domainsfile>] [-t <translationsfile>]" << std::endl
+                << "-i <interface> - the name of the interface to listen on, or" << std::endl
+                << "-p <pcapfile> - the name of the .pcap file to parse;" << std::endl
+                << "-v - verbose mode: complete information output of the DNS messages;" << std::endl
+                << "-d <domainsfile> - the name of the domain names file;" << std::endl
+                << "-t <translationsfile> - the name of the domain name to IP address translations file." << std::endl;
+                return -1;
             default:
                 std::cout << "Invalid option(s). Type ./dns-monitor -h for usage." << std::endl;
                 return 1;

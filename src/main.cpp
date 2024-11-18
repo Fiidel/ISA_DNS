@@ -27,6 +27,11 @@ int main(int argc, char** argv)
 
     // parse command line arguments and handle possible failures
     int clParserSuccess = clParser.ParseClArgs(argc, argv, configuration);
+    if (clParserSuccess == -1)
+    {
+        Cleanup(configuration);
+        return 0;
+    }
     if (clParserSuccess != 0)
     {
         std::cerr << "Command line parsing failure. Aborting." << std::endl;
